@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quiz</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --text:#0f172a; --card:#ffffff; --muted:#6b7280; --line:#e5e7eb;
+    --primary:#2563eb; --primary-2:#1d4ed8; --green:#22c55e; --red:#ef4444;
+    --opt-bg:#ffffff; --opt-bg-hover:#f3f4f6; --opt-text:#0f172a; --badge-border:#cfd5df;
+  }
+  /* Dark theme — yüksek kontrast ve okunaklılık */
+  body.dark{
+    --bg:#0b0f16; --text:#e6e9ef; --card:#0f1723; --muted:#a7b0be; --line:#223046;
+    --primary:#60a5fa; --primary-2:#3b82f6;
+    --opt-bg:#122034; --opt-bg-hover:#16263b; --opt-text:#e6e9ef; --badge-border:#3b4d68;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    transition: background .25s ease, color .25s ease;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 16px 28px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .left,.right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(29,78,216,.08));color:var(--primary);padding:8px 12px;border-radius:999px;font-weight:800;border:1px solid var(--line)}
+  .score{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;padding:8px 14px;border-radius:999px;font-weight:900;box-shadow:0 6px 16px rgba(37,99,235,.35)}
+  .btn{appearance:none;border:none;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;padding:12px 16px;border-radius:999px;font-weight:800;box-shadow:0 8px 18px rgba(37,99,235,.35);transition:transform .15s ease, box-shadow .15s ease}
+  .btn:hover{transform:translateY(-2px); box-shadow:0 12px 24px rgba(37,99,235,.4)}
+  .btn.secondary{background:linear-gradient(135deg,#6b7280,#4b5563);box-shadow:0 8px 18px rgba(107,114,128,.35)}
+  .btn.ghost{background:transparent;color:var(--text);border:1.5px solid var(--line);box-shadow:none}
+  .select,.search{background:var(--card);color:var(--text);border:1.5px solid var(--line);padding:10px 12px;border-radius:12px;font-weight:700}
+  .search{min-width:220px}
+
+  .progress{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin:8px 0 16px}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--primary-2));transition:width .3s ease}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 16px;box-shadow:0 14px 28px rgba(15,23,42,.06);animation:fade .25s ease}
+  @keyframes fade{from{opacity:.0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
+  .qtext{font-size:26px;line-height:1.35;font-weight:900;margin:0 0 12px}
+
+  .choices{display:flex;flex-direction:column;gap:12px}
+  .choice{display:flex;align-items:center;gap:12px;padding:16px 14px;border-radius:14px;border:2px solid transparent;background:var(--opt-bg);color:var(--opt-text);cursor:pointer;transition:.15s ease;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02)}
+  .choice:hover{background:var(--opt-bg-hover)}
+  .choice.disabled{opacity:.96; cursor:default}
+  .badge{width:34px;height:34px;border-radius:50%;border:2px solid var(--badge-border);display:flex;align-items:center;justify-content:center;font-weight:900;color:#6b7280;background:transparent;flex:0 0 auto}
+  body.dark .badge{color:#c6d0e0}
+  .choice.correct{background:rgba(34,197,94,.18); border-color:var(--green)}
+  .choice.correct .badge{border-color:var(--green); color:var(--green)}
+  .choice.wrong{background:rgba(239,68,68,.18); border-color:var(--red)}
+  .choice.wrong .badge{border-color:var(--red); color:var(--red)}
+
+  /* Mobil görünüm ince ayarları */
+  @media (max-width: 600px) {
+    .card {
+      padding: 10px 4px;
+      border-radius: 10px;
+    }
+    .qtext {
+      font-size: 18px;
+    }
+    .choice {
+      width: 100%;
+      font-size: 15px;
+      padding: 12px 8px;
+      border-radius: 10px;
+    }
+    .choices {
+      gap: 8px;
+    }
+    .badge {
+      width: 28px;
+      height: 28px;
+      font-size: 15px;
+    }
+    .btn, .btn.secondary, .btn.ghost {
+      width: 100%;
+      font-size: 15px;
+      padding: 10px 0;
+      border-radius: 10px;
+      margin-bottom: 5px;
+    }
+    .meta-row {
+      font-size: 13px;
+    }
+    .madde-badge {
+      font-size: 13px;
+      padding: 3px 7px;
+    }
+    .score, .timer {
+      font-size: 14px;
+      padding: 6px 7px;
+    }
+    .search, .select {
+      font-size: 14px;
+      min-width: unset;
+      padding: 7px 8px;
+    }
+    .pager {
+      font-size: 13px;
+      gap: 2px;
+    }
+    .page-btn {
+      font-size: 13px;
+      padding: 4px 5px;
+      border-radius: 7px;
+    }
+    .end-screen h2 {
+      font-size: 18px;
+    }
+    .end-screen p {
+      font-size: 15px;
+    }
+  }
+
+  .nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .split{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+  /* Stats panel */
+  .stats-wrap{margin-top:16px}
+  .stats-panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .stats-panel.open{display:block;animation:fade .25s ease}
+  .stat-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px dashed var(--line)}
+  .stat-item:last-child{border-bottom:none}
+  .pill-mini{padding:4px 10px;border-radius:999px;font-weight:800}
+  .ok{background:rgba(34,197,94,.18); color:var(--green)}
+  .bad{background:rgba(239,68,68,.18); color:var(--red)}
+
+  /* End screen */
+  .end-screen{display:none;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 16px;box-shadow:0 14px 28px rgba(15,23,42,.06);text-align:center;margin-top:16px}
+  .end-screen h2{margin:6px 0 10px;font-size:24px}
+  .end-screen p{margin:6px 0 0;font-weight:800}
+  .hidden{display:none}
+
+  /* Pager & badges */
+  .pager{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .page-btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:6px 10px;font-weight:800;cursor:pointer}
+  .page-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border-color:transparent}
+  .page-btn.ghost{background:transparent}
+  .meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 0}
+  .madde-badge{padding:4px 10px;border-radius:999px;font-weight:900;background:rgba(37,99,235,.12);color:var(--primary);border:1px solid var(--line)}
+  .timer{background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;padding:8px 12px;border-radius:999px;font-weight:900;box-shadow:0 6px 16px rgba(249,115,22,.35)}
+
+  /* File input hidden */
+  #jsonFile{display:none}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="left">
+        <span id="qcounter" class="chip">Soru 1 / 3</span>
+        <select id="mode" class="select" title="Quiz Modu">
+          <option value="normal">Deneme Sınavı</option>
+          <option value="random">Rastgele Test</option>
+          <option value="hard">Zor Sorular</option>
+        </select>
+        <input id="search" class="search" type="text" placeholder="🔎 Soru ara (örn: Disiplin)">
+        <input id="jumpTo" class="select" type="number" min="1" placeholder="#" title="Soruya git (#)" style="width:90px">
+        <button id="jumpBtn" class="btn ghost" title="Soruya git">Git</button>
+        <select id="jumpSelect" class="select" title="Soru listesi"></select>
+        <button id="jump600" class="btn ghost" title="600. soruya git">600</button>
+      </div>
+      <div class="right">
+        <button id="theme" class="btn ghost">🌗 Tema</button>
+        <button id="favBtn" class="btn ghost" title="Bu soruyu favoriye ekle/çıkar">⭐ Favori</button>
+        <button id="favToggle" class="btn secondary" title="Sadece favorileri göster">⭐ Sadece Favoriler</button>
+        <span id="timer" class="timer" title="Süre">⏱ 00:00</span>
+        <button id="timerStart" class="btn ghost" title="Sayaç Başlat/Durdur">⏯</button>
+        <button id="timerReset" class="btn ghost" title="Sayaç Sıfırla">⟲</button>
+        <span id="score" class="score">Skor: 0</span>
+        <button id="statsToggle" class="btn secondary">📊 İstatistikler</button>
+        <button id="loadJsonBtn" class="btn ghost">📥 JSON Yükle</button>
+        <input id="jsonFile" type="file" accept=".json" />
+      </div>
+    </div>
+
+    <div class="progress"><div id="bar" class="bar"></div></div>
+
+    <div class="card">
+      <h2 id="question" class="qtext">Soru yükleniyor…</h2>
+      <div id="choices" class="choices"></div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+        <button id="markBtn" class="btn ghost" title="Soruyu işaretle">🔖 İşaretle</button>
+        <button id="showMarkedBtn" class="btn secondary" title="İşaretli soruları göster">🔎 İşaretliler</button>
+      </div>
+      <div style="margin-top:12px;">
+        <textarea id="noteBox" rows="2" placeholder="Açıklama/Not ekle..." style="width:100%;border-radius:8px;padding:7px 10px;border:1.5px solid var(--line);margin-top:4px;font-size:15px"></textarea>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span id="maddeBadge" class="madde-badge" style="display:none"></span>
+    </div>
+
+    <div class="nav">
+      <div class="split">
+        <button id="prev" class="btn">⬅︎ Önceki</button>
+        <button id="reset" class="btn secondary">⟳ Sıfırla</button>
+        <button id="next" class="btn">Sonraki ➝</button>
+      </div>
+    </div>
+    <div id="pager" class="pager"></div>
+
+    <!-- Collapsible Stats -->
+    <div class="stats-wrap">
+      <div id="statsPanel" class="stats-panel"></div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="endScreen" class="end-screen">
+      <h2>🎉 Sonuçlar</h2>
+      <p id="resultText">Özet burada görünecek</p>
+      <div style="margin-top:12px">
+        <button id="exportCsvBtn" class="btn ghost" style="margin-right:6px;">⬇️ CSV</button>
+        <button id="exportPdfBtn" class="btn ghost">⬇️ PDF</button>
+      </div>
+      <div style="margin-top:14px">
+        <button id="restartBtn" class="btn">↻ Tekrar Başla</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* 1) Örnek sorular */
+let QUESTIONS = [
+  { q:"Türkiye’nin başkenti neresidir?", options:["İstanbul","Ankara","İzmir","Bursa"], answer:"Ankara" },
+  { q:"İstiklal Marşı’nın yazarı kimdir?", options:["Mehmet Akif Ersoy","Namık Kemal","Yahya Kemal","Ziya Gökalp"], answer:"Mehmet Akif Ersoy" },
+  { q:"TSK’da tümen mi kolordu mu daha büyüktür?", options:["Tümen","Kolordu","Eşittir","Bağlıdır"], answer:"Kolordu" },
+  { q:"Disiplinin temel unsuru nedir?", options:["Sadece yazılı emir","Kanun/nizam ve amirlere itaat","Kıyafet","Nöbet"], answer:"Kanun/nizam ve amirlere itaat" },
+  { q:"Garnizon komutanı hangi alandan sorumludur?", options:["Sivil idare","Belediye","Askerî düzen ve disiplin","Üniversite"], answer:"Askerî düzen ve disiplin" }
+];
+let ORIGINAL = [...QUESTIONS];
+
+/* 2) Durum */
+let idx = 0; // aktif soru index
+let score = 0; // doğru sayısı
+let STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0}));
+let userAnswers = Array(QUESTIONS.length).fill(null);
+let MARKED = new Set(); // işaretli soruların indexleri
+let NOTES = {}; // {index: açıklama}
+
+/* 3) Kısayollar */
+const $ = (s)=>document.querySelector(s);
+const barEl = $("#bar"), qEl = $("#question"), choicesEl = $("#choices"),
+      qCounterEl = $("#qcounter"), scoreEl = $("#score"),
+      prevBtn = $("#prev"), nextBtn = $("#next"), resetBtn = $("#reset"),
+      modeSel = $("#mode"), searchInp = $("#search"),
+      statsToggle = $("#statsToggle"), statsPanel = $("#statsPanel"),
+      themeBtn = $("#theme"),
+      endScreen = $("#endScreen"), resultText = $("#resultText"), restartBtn = $("#restartBtn"),
+      loadJsonBtn = $("#loadJsonBtn"), jsonFileInput = $("#jsonFile"),
+      jumpInput = $("#jumpTo"), jumpBtn = $("#jumpBtn"),
+      jumpSelect = $("#jumpSelect"),
+      pagerEl = $("#pager"),
+      maddeBadge = $("#maddeBadge"),
+      favBtn = $("#favBtn"), favToggle = $("#favToggle"),
+      timerEl = $("#timer"), timerStartBtn = $("#timerStart"), timerResetBtn = $("#timerReset"),
+      jump600Btn = $("#jump600"),
+      markBtn = document.getElementById("markBtn"),
+      showMarkedBtn = document.getElementById("showMarkedBtn"),
+      noteBox = document.getElementById("noteBox"),
+      exportCsvBtn = document.getElementById("exportCsvBtn"),
+      exportPdfBtn = document.getElementById("exportPdfBtn");
+
+function letter(i){ return String.fromCharCode(65+i); }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+function goTo(n){
+  const total = QUESTIONS.length;
+  if(total===0) return;
+  const i = Math.min(Math.max(1, parseInt(n,10)||1), total);
+  idx = i - 1;
+  render();
+}
+// Soru objesinde madde alanı varsa döndür, yoksa qText'ten ara
+function extractMaddeFromObj(qObj) {
+  if (qObj && typeof qObj.madde !== "undefined" && qObj.madde !== null && qObj.madde !== "") {
+    return qObj.madde;
+  }
+  // Eski uyumluluk için qText'ten ara
+  if (qObj && typeof qObj.q === "string") {
+    const m = qObj.q.match(/\(madde\s*(\d+)\)/i);
+    return m ? m[1] : null;
+  }
+  return null;
+}
+function renderPager(){
+  if(!pagerEl) return;
+  const total = QUESTIONS.length;
+  pagerEl.innerHTML = "";
+  if(total<=1) return;
+  const makeBtn = (label, goto, active=false, ghost=false)=>{
+    const b = document.createElement("button");
+    b.className = "page-btn" + (active?" active":"") + (ghost?" ghost":"");
+    b.textContent = label;
+    b.addEventListener("click", ()=> goTo(goto));
+    return b;
+  };
+  const cur = idx+1;
+  const windowSize = 2; // current ±2
+  // first & prev
+  pagerEl.appendChild(makeBtn("«", 1, false, true));
+  pagerEl.appendChild(makeBtn("‹", Math.max(1, cur-1), false, true));
+  // range
+  const start = Math.max(1, cur - windowSize);
+  const end = Math.min(total, cur + windowSize);
+  if(start>1){ pagerEl.appendChild(makeBtn(String(1), 1, 1===cur)); if(start>2){ const dot=document.createElement("span"); dot.textContent="…"; pagerEl.appendChild(dot);} }
+  for(let i=start;i<=end;i++){ pagerEl.appendChild(makeBtn(String(i), i, i===cur)); }
+  if(end<total){ if(end<total-1){ const dot=document.createElement("span"); dot.textContent="…"; pagerEl.appendChild(dot);} pagerEl.appendChild(makeBtn(String(total), total, total===cur)); }
+  // next & last
+  pagerEl.appendChild(makeBtn("›", Math.min(total, cur+1), false, true));
+  pagerEl.appendChild(makeBtn("»", total, false, true));
+}
+// Favorites
+const FAVS = new Set(); // keys by question text
+function toggleFav(){
+  const key = QUESTIONS[idx]?.q || "";
+  if(!key) return;
+  if(FAVS.has(key)){ FAVS.delete(key); favBtn.textContent="⭐ Favori"; }
+  else { FAVS.add(key); favBtn.textContent="★ Favori"; }
+}
+function applyFavFilter(onlyFav){
+  if(!onlyFav){ QUESTIONS = [...ORIGINAL]; }
+  else { QUESTIONS = ORIGINAL.filter(q=> FAVS.has(q.q)); }
+  score=0; idx=0; userAnswers=Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0}));
+  QUESTIONS.forEach(q=>{ delete q._shuffled; });
+  endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden');
+  render();
+  populateJumpSelect();
+}
+// Timer
+let timerId = null, elapsed = 0; // seconds
+function fmtTime(s){ const m = Math.floor(s/60), ss=String(s%60).padStart(2,"0"); return `${String(m).padStart(2,"0")}:${ss}`; }
+function updateTimer(){ if(timerEl) timerEl.textContent = `⏱ ${fmtTime(elapsed)}`; }
+function startStopTimer(){
+  if(timerId){ clearInterval(timerId); timerId=null; return; }
+  timerId = setInterval(()=>{ elapsed+=1; updateTimer(); }, 1000);
+}
+function resetTimer(){ elapsed=0; updateTimer(); }
+
+/* 4) Render */
+function render(){
+  const total = QUESTIONS.length;
+  if(total===0){ qEl.textContent = "Soru yok."; choicesEl.innerHTML = ""; qCounterEl.textContent = "Soru 0 / 0"; barEl.style.width = "0%";
+    if(markBtn) markBtn.disabled=true;
+    if(noteBox) noteBox.value="";
+    if(showMarkedBtn) showMarkedBtn.disabled=true;
+    maddeBadge.style.display='none';
+    return;
+  }
+  if(idx>=total){ idx = total-1; }
+  const q = QUESTIONS[idx];
+
+  // Madde badge: JSON'da madde varsa veya metinde varsa, mutlaka göster
+  const madde = extractMaddeFromObj(q);
+  if(madde !== null && typeof madde !== "undefined" && madde !== "") {
+    maddeBadge.style.display='inline-block';
+    maddeBadge.textContent = `(Madde ${madde})`;
+  } else {
+    maddeBadge.style.display='none';
+  }
+
+  // Soru metni
+  qEl.textContent = q.q;
+  qCounterEl.textContent = `Soru ${idx+1} / ${total}`;
+  barEl.style.width = `${((idx)/Math.max(1,total))*100}%`;
+
+  choicesEl.innerHTML = "";
+  const opts = q._shuffled || shuffle([...q.options]);
+  q._shuffled = opts;
+  opts.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "choice";
+    btn.innerHTML = `<span class="badge">${letter(i)}</span><span class="label">${opt}</span>`;
+    btn.addEventListener("click", ()=>onChoose(btn, opt, q.answer));
+    if(userAnswers[idx]!==null){
+      btn.classList.add("disabled");
+      const chosen = userAnswers[idx];
+      if(chosen === q.answer){ if(opt === q.answer) btn.classList.add("correct"); }
+      else { if(opt === chosen) btn.classList.add("wrong"); if(opt === q.answer) btn.classList.add("correct"); }
+    }
+    choicesEl.appendChild(btn);
+  });
+  prevBtn.disabled = idx===0;
+  nextBtn.disabled = false;
+  nextBtn.textContent = (idx===total-1) ? "Bitir ✔︎" : "Sonraki ➝";
+  // Skor (toplam doğru/yanlış)
+  const answered = userAnswers.filter(x=> x!==null).length;
+  const correctCount = score;
+  const wrongCount = Math.max(0, answered - correctCount);
+  // Gelişmiş skor: Doğru, yanlış, işaretli, açıklamalı
+  let markedCount = MARKED.size;
+  let noteCount = Object.keys(NOTES).length;
+  scoreEl.textContent = `Doğru: ${correctCount} | Yanlış: ${wrongCount} | Skor: ${correctCount} | İşaretli: ${markedCount} | Açıklamalı: ${noteCount}`;
+  if(jumpInput){ jumpInput.max = String(total); jumpInput.value = String(Math.min(idx+1, Math.max(1,total))); }
+  populateJumpSelect();
+  renderPager();
+  favBtn.textContent = FAVS.has(q.q) ? "★ Favori" : "⭐ Favori";
+  // İşaretle butonu
+  if(markBtn) {
+    markBtn.disabled = false;
+    markBtn.textContent = MARKED.has(idx) ? "✅ İşaretli" : "🔖 İşaretle";
+  }
+  // Not kutusu
+  if(noteBox) {
+    noteBox.value = NOTES[idx] || "";
+    noteBox.placeholder = "Açıklama/Not ekle...";
+  }
+  // İşaretliler buton
+  if(showMarkedBtn) showMarkedBtn.disabled = MARKED.size===0;
+}
+// Klavye kısayolları
+document.addEventListener('keydown', function(e) {
+  // Input veya textarea'da isek atla
+  const activeEl = document.activeElement;
+  const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.isContentEditable);
+  if(isInput) return;
+  // Sol ok: Önceki
+  if(e.key === "ArrowLeft" && prevBtn && !prevBtn.disabled) {
+    prevBtn.click();
+    e.preventDefault();
+    return;
+  }
+  // Sağ ok: Sonraki
+  if(e.key === "ArrowRight" && nextBtn && !nextBtn.disabled) {
+    nextBtn.click();
+    e.preventDefault();
+    return;
+  }
+  // 1-5 tuşları: Şık seçimi
+  if(/^[1-5]$/.test(e.key)) {
+    const n = parseInt(e.key,10) - 1;
+    const btns = choicesEl ? choicesEl.querySelectorAll('.choice') : [];
+    if(btns && btns[n] && !btns[n].classList.contains('disabled')) {
+      btns[n].click();
+      e.preventDefault();
+      return;
+    }
+  }
+});
+// İşaretle & İşaretliler
+if(markBtn){
+  markBtn.addEventListener('click', ()=>{
+    if(!QUESTIONS.length) return;
+    if(MARKED.has(idx)){ MARKED.delete(idx); markBtn.textContent="🔖 İşaretle"; }
+    else { MARKED.add(idx); markBtn.textContent="✅ İşaretli"; }
+    render();
+  });
+}
+if(showMarkedBtn){
+  showMarkedBtn.addEventListener('click', ()=>{
+    if(!MARKED.size) return;
+    // Sadece işaretli soruları göster
+    QUESTIONS = Array.from(MARKED).map(i=> ORIGINAL[i]).filter(Boolean);
+    idx = 0; score = 0; userAnswers = Array(QUESTIONS.length).fill(null);
+    STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0}));
+    QUESTIONS.forEach(q=>{ delete q._shuffled; });
+    endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden');
+    render();
+    populateJumpSelect();
+  });
+}
+if(noteBox){
+  noteBox.addEventListener('input', ()=>{
+    if(!QUESTIONS.length) return;
+    if(noteBox.value.trim()){
+      NOTES[idx] = noteBox.value;
+    }else{
+      delete NOTES[idx];
+    }
+    render();
+  });
+}
+
+// Açılır listeyi doldur
+function populateJumpSelect(){
+  if(!jumpSelect) return;
+  const total = QUESTIONS.length;
+  const prevLen = jumpSelect.options.length;
+  if(prevLen !== total){
+    // Rebuild options
+    jumpSelect.innerHTML = "";
+    for(let i=1;i<=total;i++){
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = `Soru ${i}`;
+      jumpSelect.appendChild(opt);
+    }
+  }
+  // Sync selected
+  if(total>0){
+    jumpSelect.value = String(Math.min(idx+1, total));
+  }
+}
+
+/* 5) Cevap seçimi */
+function onChoose(btn, chosen, correct){
+  if(userAnswers[idx]!==null) return;
+  const btns = choicesEl.querySelectorAll(".choice");
+  btns.forEach(b=>b.classList.add("disabled"));
+  if(chosen === correct){ btn.classList.add("correct"); userAnswers[idx] = correct; score += 1; STATS[idx].attempts++; STATS[idx].correct++; }
+  else { btn.classList.add("wrong"); [...btns].find(b=>b.textContent.includes(correct))?.classList.add("correct"); userAnswers[idx] = chosen; STATS[idx].attempts++; STATS[idx].wrong++; }
+  // Skoru güncelle (Doğru / Yanlış / Skor)
+  const answeredNow = userAnswers.filter(x=> x!==null).length;
+  const correctNow = score;
+  const wrongNow = Math.max(0, answeredNow - correctNow);
+  scoreEl.textContent = `Doğru: ${correctNow} | Yanlış: ${wrongNow} | Skor: ${correctNow}`;
+}
+
+/* 6) Sonuç ekranı */
+function endQuiz(){
+  document.querySelector('.card').classList.add('hidden');
+  document.querySelector('.nav').classList.add('hidden');
+  endScreen.style.display = 'block';
+  const total = QUESTIONS.length; const correct = score; const wrong = total - correct; const success = total>0? Math.round((correct/total)*100) : 0;
+  let markedCount = MARKED.size;
+  let noteCount = Object.keys(NOTES).length;
+  resultText.textContent = `Toplam ${total} sorudan ${correct} doğru, ${wrong} yanlış. Başarı: %${success} | İşaretli: ${markedCount} | Açıklamalı: ${noteCount}`;
+  barEl.style.width = '100%';
+}
+// Export CSV/PDF
+function exportCSV(){
+  let rows = [["#","Soru","Seçtiğim","Doğru Cevap","Sonuç","İşaretli mi?","Açıklama"]];
+  for(let i=0;i<QUESTIONS.length;i++){
+    let q = QUESTIONS[i];
+    let chosen = userAnswers[i] || "";
+    let correct = q.answer;
+    let sonuc = chosen==="" ? "" : (chosen===correct ? "Doğru" : "Yanlış");
+    let marked = MARKED.has(i) ? "Evet" : "";
+    let note = NOTES[i] || "";
+    rows.push([i+1, q.q, chosen, correct, sonuc, marked, note.replace(/\r?\n/g," ")]);
+  }
+  let csv = rows.map(r=>r.map(x=>`"${(x||"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  let blob = new Blob([csv], {type:"text/csv"});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = url; a.download = "quiz_sonuclari.csv";
+  document.body.appendChild(a); a.click(); setTimeout(()=>{a.remove();URL.revokeObjectURL(url)}, 100);
+}
+function exportPDF(){
+  // Basit PDF: Tablo olarak yazdırma (window.print alternatifi)
+  let w = window.open("", "_blank");
+  let html = `<html><head><title>Quiz Sonuçları</title>
+    <style>body{font-family:sans-serif;font-size:13px} table{border-collapse:collapse;width:100%} th,td{border:1px solid #888;padding:5px 7px;text-align:left} th{background:#eee}</style>
+    </head><body>
+    <h2>Quiz Sonuçları</h2>
+    <table>
+    <thead><tr><th>#</th><th>Soru</th><th>Seçtiğim</th><th>Doğru Cevap</th><th>Sonuç</th><th>İşaretli mi?</th><th>Açıklama</th></tr></thead>
+    <tbody>`;
+  for(let i=0;i<QUESTIONS.length;i++){
+    let q = QUESTIONS[i];
+    let chosen = userAnswers[i] || "";
+    let correct = q.answer;
+    let sonuc = chosen==="" ? "" : (chosen===correct ? "Doğru" : "Yanlış");
+    let marked = MARKED.has(i) ? "Evet" : "";
+    let note = (NOTES[i]||"").replace(/\r?\n/g," ");
+    html += `<tr>
+      <td>${i+1}</td>
+      <td>${q.q.replace(/</g,"&lt;")}</td>
+      <td>${chosen.replace(/</g,"&lt;")}</td>
+      <td>${correct.replace(/</g,"&lt;")}</td>
+      <td>${sonuc}</td>
+      <td>${marked}</td>
+      <td>${note.replace(/</g,"&lt;")}</td>
+    </tr>`;
+  }
+  html += "</tbody></table></body></html>";
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{w.print();}, 400);
+}
+if(exportCsvBtn){ exportCsvBtn.addEventListener('click', exportCSV);}
+if(exportPdfBtn){ exportPdfBtn.addEventListener('click', exportPDF);}
+function restartQuiz(){ idx=0; score=0; userAnswers = Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0})); QUESTIONS.forEach(q=>{ delete q._shuffled; }); endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden'); render(); }
+
+/* 7) Navigasyon */
+prevBtn.addEventListener("click", ()=>{ if(idx>0){ idx--; render(); }});
+nextBtn.addEventListener("click", ()=>{ if(idx<QUESTIONS.length-1){ idx++; render(); } else { endQuiz(); } });
+resetBtn.addEventListener("click", ()=>{ idx=0; score=0; userAnswers = Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0})); QUESTIONS.forEach(q=>{ delete q._shuffled; }); endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden'); render(); });
+restartBtn.addEventListener('click', restartQuiz);
+
+// Hızlı atla input ve butonları
+if(jumpBtn && jumpInput){
+  jumpBtn.addEventListener('click', ()=>{
+    goTo(jumpInput.value);
+  });
+  jumpInput.addEventListener('keydown', (e)=>{
+    if(e.key==="Enter"){ goTo(jumpInput.value);}
+  });
+}
+// Ctrl/Cmd+G kısayolu
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="g"){
+    if(jumpInput){ jumpInput.style.display='inline-block'; jumpBtn.style.display='inline-block'; jumpInput.focus();}
+    e.preventDefault();
+  }
+});
+// Hızlı: 600'e git
+if(jump600Btn){
+  jump600Btn.addEventListener('click', ()=> goTo(600));
+}
+// Açılır listeden hızlı atla
+if(jumpSelect){
+  jumpSelect.addEventListener('change', (e)=> goTo(e.target.value));
+}
+// Favoriler
+if(favBtn){ favBtn.addEventListener('click', toggleFav); }
+if(favToggle){
+  let onlyFav = false;
+  favToggle.addEventListener('click', ()=>{ onlyFav = !onlyFav; favToggle.textContent = onlyFav ? "🔎 Favoriler" : "⭐ Sadece Favoriler"; applyFavFilter(onlyFav); });
+}
+// Timer
+if(timerStartBtn){ timerStartBtn.addEventListener('click', startStopTimer); }
+if(timerResetBtn){ timerResetBtn.addEventListener('click', resetTimer); }
+updateTimer();
+
+/* 8) Modlar */
+modeSel.addEventListener("change", ()=>{
+  const v = modeSel.value;
+  if(v==="normal"){ /* sırayı koru */ }
+  else if(v==="random"){ QUESTIONS = shuffle(QUESTIONS); }
+  else if(v==="hard"){ QUESTIONS = [...QUESTIONS].sort((a,b)=>{ const ia = QUESTIONS.indexOf(a), ib = QUESTIONS.indexOf(b); const wa = STATS[ia]?.wrong||0, wb = STATS[ib]?.wrong||0; return wb - wa; }); }
+  score=0; idx=0; userAnswers=Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0})); QUESTIONS.forEach(q=>{ delete q._shuffled; }); endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden'); render();
+  populateJumpSelect();
+  renderPager();
+});
+
+/* 9) Arama & Filtreleme */
+searchInp.addEventListener("input", ()=>{
+  const term = searchInp.value.trim().toLowerCase();
+  if(!term){ QUESTIONS = [...ORIGINAL]; }
+  else { QUESTIONS = ORIGINAL.filter(q=> q.q.toLowerCase().includes(term)); }
+  score=0; idx=0; userAnswers=Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0})); QUESTIONS.forEach(q=>{ delete q._shuffled; }); endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden'); render();
+  populateJumpSelect();
+  renderPager();
+});
+
+/* 10) İstatistik Paneli */
+function renderStats(){
+  const parts = QUESTIONS.map((q,i)=>{ const s = STATS[i]||{attempts:0,correct:0,wrong:0}; const rate = s.attempts>0 ? Math.round((s.wrong/s.attempts)*100) : 0; return `<div class="stat-item"><div>${i+1}. ${q.q}</div><div><span class="pill-mini ok">Doğru: ${s.correct}</span><span class="pill-mini bad" style="margin-left:8px">Yanlış: ${s.wrong}</span><span class="pill-mini" style="margin-left:8px;background:rgba(37,99,235,.18);color:var(--primary)">Yanlış %: ${rate}</span></div></div>`; }).join("");
+  $("#statsPanel").innerHTML = parts || "<div class='stat-item'>İstatistik yok.</div>";
+}
+statsToggle.addEventListener("click", ()=>{ const panel = $("#statsPanel"); const willOpen = !panel.classList.contains("open"); panel.classList.toggle("open"); if(willOpen) renderStats(); });
+
+/* 11) Tema */
+themeBtn.addEventListener("click", ()=>{ document.body.classList.toggle("dark"); });
+
+/* 12) JSON'dan yükleme */
+loadJsonBtn.addEventListener('click', ()=> jsonFileInput.click());
+jsonFileInput.addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const data = JSON.parse(evt.target.result);
+      QUESTIONS = (Array.isArray(data)? data: []).map(item=>{
+        let ansText = item.answer;
+        if(typeof ansText === 'number' && Array.isArray(item.options)) ansText = item.options[ansText];
+        // Madde desteği: JSON'da madde varsa ekle
+        let madde = (typeof item.madde !== "undefined") ? item.madde : undefined;
+        let obj = { q: String(item.q||''), options: Array.isArray(item.options)? item.options.slice(0): [], answer: String(ansText||'') };
+        if(typeof madde !== "undefined") obj.madde = madde;
+        return obj;
+      }).filter(x=> x.q && x.options.length>0 && x.answer);
+      if(QUESTIONS.length===0){ alert('Geçerli soru bulunamadı. JSON formatını kontrol edin.'); return; }
+      ORIGINAL = [...QUESTIONS]; score=0; idx=0; userAnswers = Array(QUESTIONS.length).fill(null); STATS = QUESTIONS.map(()=>({attempts:0, correct:0, wrong:0})); QUESTIONS.forEach(q=>{ delete q._shuffled; }); endScreen.style.display='none'; document.querySelector('.card').classList.remove('hidden'); document.querySelector('.nav').classList.remove('hidden'); render();
+      if(jumpInput){
+        jumpInput.max = String(QUESTIONS.length || 1);
+        jumpInput.value = "1";
+      }
+      populateJumpSelect();
+      renderPager();
+    }catch(err){ console.error(err); alert('JSON okunamadı. Dosya içeriğini kontrol edin.'); }
+  };
+  reader.readAsText(file, 'utf-8');
+});
+
+// Geri sayım modu (countdown)
+let countdownId = null, countdown = 0;
+function startCountdown(secs){
+  if(countdownId) clearInterval(countdownId);
+  countdown = secs;
+  updateCountdown();
+  countdownId = setInterval(()=>{
+    if(countdown>0){ countdown--; updateCountdown(); }
+    else { clearInterval(countdownId); countdownId=null; alert("Süre doldu!"); endQuiz(); }
+  }, 1000);
+}
+function updateCountdown(){
+  if(timerEl) timerEl.textContent = `⏳ ${fmtTime(countdown)}`;
+}
+// Mod: Geri sayım eklentisi
+let countdownMode = false;
+if(modeSel){
+  modeSel.addEventListener("change", ()=>{
+    if(modeSel.value==="countdown"){
+      let mins = prompt("Kaç dakika? (örn: 20)", "20");
+      let totalSecs = Math.max(1, parseInt(mins,10)||20) * 60;
+      countdownMode = true;
+      startCountdown(totalSecs);
+    }else{
+      countdownMode = false;
+      if(countdownId) clearInterval(countdownId);
+      updateTimer();
+    }
+  });
+}
+// Mod select'e ekle
+if(modeSel && ![...modeSel.options].some(o=>o.value==="countdown")){
+  let opt = document.createElement("option");
+  opt.value = "countdown";
+  opt.textContent = "⏳ Geri Sayım Modu";
+  modeSel.appendChild(opt);
+}
+
+/* Başlat */
+render();
+populateJumpSelect();
+renderPager();
+updateTimer();
+</script>
+</body>
+</html>
