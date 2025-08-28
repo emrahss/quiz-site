@@ -1,105 +1,645 @@
 <!doctype html>
 <html lang="tr">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Gelişmiş Quiz Platformu</title>
-    <style>html:not(.auth-ok) body{display:none !important;}</style>
-    <script>
-      // Kullanıcı adı + şifre kontrolü (başarısız olursa sayfayı tamamen kilitle)
-      const username = prompt("Kullanıcı adı:")?.trim();
-      const password = prompt("Şifre:")?.trim();
-
-      if (!(username === "subay" && password === "yıldız")) {
-        document.write(`
-          <!doctype html>
-          <html lang="tr">
-            <head><meta charset="utf-8"><title>Erişim engellendi</title></head>
-            <body style="font-family:sans-serif;text-align:center;padding:3rem">
-              <h1>🚫 Yetkisiz erişim</h1>
-              <p>Hatalı kullanıcı adı veya şifre.</p>
-            </body>
-          </html>
-        `);
-        document.close();
-        throw new Error("Unauthorized access");
-      } else {
-        // Doğru giriş: HTML köküne işaret koy → CSS gövdeyi görünür yapsın
-        document.documentElement.classList.add('auth-ok');
+    <title>Quiz Uygulaması</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+    <style>
+      html:not(.auth-ok) .main-content { display: none !important; }
+      .auth-screen { 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        min-height: 100vh; 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
       }
-    </script>
+      .auth-card { 
+        background: white; 
+        padding: 40px; 
+        border-radius: 20px; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        max-width: 400px; 
+        width: 90%;
+        text-align: center;
+      }
+      .auth-card h1 { 
+        color: #2563eb; 
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+      .auth-card p { 
+        color: #6b7280; 
+        margin-bottom: 30px;
+      }
+      .auth-input { 
+        width: 100%; 
+        padding: 12px 16px; 
+        margin: 8px 0; 
+        border: 2px solid #e5e7eb; 
+        border-radius: 12px; 
+        font-size: 16px;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+      }
+      .auth-input:focus { 
+        outline: none; 
+        border-color: #2563eb; 
+      }
+      .auth-btn { 
+        width: 100%; 
+        padding: 12px; 
+        margin: 8px 0; 
+        background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+        color: white; 
+        border: none; 
+        border-radius: 12px; 
+        font-size: 16px; 
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .auth-btn:hover { 
+        transform: translateY(-2px); 
+      }
+      .auth-btn.secondary { 
+        background: transparent; 
+        color: #2563eb; 
+        border: 2px solid #2563eb; 
+      }
+      .auth-error { 
+        color: #ef4444; 
+        margin: 10px 0; 
+        padding: 10px; 
+        background: #fef2f2; 
+        border-radius: 8px;
+        display: none;
+      }
+      .auth-success { 
+        color: #22c55e; 
+        margin: 10px 0; 
+        padding: 10px; 
+        background: #f0fdf4; 
+        border-radius: 8px;
+        display: none;
+      }
+      .auth-loading { 
+        opacity: 0.7; 
+        pointer-events: none; 
+      }
+      .auth-tabs { 
+        display: flex; 
+        margin-bottom: 20px; 
+      }
+      .auth-tab { 
+        flex: 1; 
+        padding: 10px; 
+        background: #f3f4f6; 
+        border: none; 
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .auth-tab.active { 
+        background: #2563eb; 
+        color: white; 
+      }
+      .auth-tab:first-child { 
+        border-radius: 8px 0 0 8px; 
+      }
+      .auth-tab:last-child { 
+        border-radius: 0 8px 8px 0; 
+      }
+      
+      /* Multiplayer Panel Styles */
+      .multiplayer-panel {
+        background: var(--card);
+        border: 2px solid var(--primary);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text);
+      }
+      
+      .input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--card);
+        color: var(--text);
+        box-sizing: border-box;
+      }
+      
+      .input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      }
+
+      /* Additional Multiplayer Styles */
+      .chat-container {
+        height: 300px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        margin-top: 1rem;
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        background: var(--bg);
+      }
+
+      .chat-input-container {
+        display: flex;
+        padding: 10px;
+        border-top: 1px solid var(--line);
+      }
+
+      .chat-input {
+        flex: 1;
+        margin: 0;
+        margin-right: 10px;
+      }
+
+      .message {
+        margin: 5px 0;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+      }
+
+      .message-user {
+        font-weight: bold;
+        color: var(--primary);
+      }
+
+      .room-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 10px;
+      }
+
+      .participants {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .participant {
+        background: var(--primary);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .multiplayer-game-active #multiplayerPanel {
+        border-color: var(--green);
+        background: rgba(34, 197, 94, 0.05);
+      }
+
+      .multiplayer-game-active .card {
+        display: none;
+      }
+
+      /* Multiplayer quiz styles */
+      #multiplayerQuizArea {
+        display: none;
+        background: var(--card);
+        border: 2px solid var(--primary);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      #multiplayerQuizArea.active {
+        display: block;
+      }
+
+      .multiplayer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .multiplayer-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .room-info {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .room-info > div {
+          flex-direction: column;
+          align-items: flex-start !important;
+        }
+        
+        .participants {
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        
+        .participant {
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+        
+        .choice {
+          font-size: 14px;
+          padding: 10px;
+        }
+        
+        .badge {
+          width: 20px;
+          height: 20px;
+          font-size: 12px;
+        }
+        
+        .quiz-results {
+          padding: 15px;
+        }
+        
+        .timer {
+          font-size: 12px;
+        }
+      }
+      
+      /* Tools Menu Styles */
+      .tools-menu {
+        animation: dropIn 0.2s ease-out;
+      }
+      
+      @keyframes dropIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .tools-menu-item {
+        width: 100%;
+        background: none;
+        border: none;
+        color: var(--text);
+        padding: 12px 16px;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 0;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s ease;
+        display: flex;
+        align-items: center;
+      }
+      
+      .tools-menu-item:first-child {
+        border-radius: 12px 12px 0 0;
+      }
+      
+      .tools-menu-item:last-child {
+        border-radius: 0 0 12px 12px;
+      }
+      
+      .tools-menu-item:hover {
+        background: var(--opt-bg-hover);
+      }
+      
+      .tools-menu-item:active {
+        transform: scale(0.98);
+      }
+
+      /* Note Icon Styles */
+      .note-icon {
+        transition: transform 0.2s ease;
+      }
+      
+      .note-icon:hover {
+        transform: scale(1.2);
+      }
+      
+      .note-tooltip {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-100%);
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: normal;
+        max-width: 250px;
+        word-wrap: break-word;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        white-space: pre-wrap;
+      }
+      
+      .note-icon:hover .note-tooltip {
+        opacity: 1;
+      }
+
+      /* Tab System Styles */
+      .tools-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+        margin: 0;
+        padding: 0;
+        background: var(--card);
+        border-radius: 12px 12px 0 0;
+      }
+      
+      .tools-tab {
+        flex: 1;
+        background: none;
+        border: none;
+        padding: 10px 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+      
+      .tools-tab:first-child {
+        border-radius: 12px 0 0 0;
+      }
+      
+      .tools-tab:last-child {
+        border-radius: 0 12px 0 0;
+      }
+      
+      .tools-tab.active {
+        color: var(--primary);
+        background: rgba(37,99,235,0.05);
+        border-bottom-color: var(--primary);
+      }
+      
+      .tools-tab:hover:not(.active) {
+        background: var(--opt-bg-hover);
+        color: var(--text);
+      }
+      
+      .tools-tab-content {
+        display: none;
+        padding: 0;
+      }
+      
+      .tools-tab-content.active {
+        display: block;
+      }
+
+    </style>
     <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-header">
-      <h1 class="app-title">🎯 Quiz Master</h1>
-      <p class="app-subtitle">Gelişmiş Quiz Platformu</p>
+</head>
+<body>
+    <!-- Firebase Authentication Screen -->
+    <div id="authScreen" class="auth-screen">
+      <div class="auth-card">
+        <h1>Quiz Uygulaması</h1>
+        <p>Devam etmek için giriş yapın</p>
+        
+        <div class="auth-tabs">
+          <button type="button" id="loginTab" class="auth-tab active">Giriş Yap</button>
+          <button type="button" id="registerTab" class="auth-tab">Kayıt Ol</button>
+        </div>
+        
+        <!-- Login Form -->
+        <div id="loginForm">
+          <input type="email" id="loginEmail" class="auth-input" placeholder="E-posta adresiniz">
+          <input type="password" id="loginPassword" class="auth-input" placeholder="Şifreniz">
+          <button type="button" id="loginBtn" class="auth-btn">🔑 Giriş Yap</button>
+          <button type="button" id="forgotPasswordBtn" class="auth-btn secondary auth-btn forgot-password">🤔 Şifremi Unuttum</button>
+        </div>
+        
+        <!-- Register Form -->
+        <div id="registerForm" class="display-none">
+          <input type="email" id="registerEmail" class="auth-input" placeholder="E-posta adresiniz">
+          <input type="password" id="registerPassword" class="auth-input" placeholder="Şifre (en az 6 karakter)">
+          <input type="password" id="confirmPassword" class="auth-input" placeholder="Şifre tekrar">
+          <button type="button" id="registerBtn" class="auth-btn">📝 Kayıt Ol</button>
+        </div>
+        
+        <div class="auth-error" id="authError"></div>
+        <div class="auth-success" id="authSuccess"></div>
+        
+        
+        <p class="auth-text-small">
+          Güvenli Firebase Authentication sistemi
+        </p>
+      </div>
     </div>
 
-    <div class="wrap">
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="auth-screen display-none z-10000">
+      <div class="auth-card" style="max-width: 350px;">
+        <h2 class="color-primary margin-bottom-10px">🔑 Şifre Sıfırlama</h2>
+        <p class="color-muted margin-top-20px">
+          E-posta adresinizi girin, şifre sıfırlama bağlantısını gönderelim.
+        </p>
+        
+        <input type="email" id="resetEmail" class="auth-input" placeholder="E-posta adresiniz">
+        
+        <div class="auth-error" id="resetError"></div>
+        <div class="auth-success" id="resetSuccess"></div>
+        
+        <div class="display-flex gap-10px margin-top-20px">
+          <button type="button" id="sendResetBtn" class="auth-btn flex-1">📧 Sıfırlama Gönder</button>
+          <button type="button" id="cancelResetBtn" class="auth-btn secondary flex-1">❌ İptal</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="wrap">
       <div class="main-grid">
         <!-- Quiz Content -->
         <div class="quiz-content">
-          <div class="topbar">
-            <span id="qcounter" class="chip">📋 Soru 1 / 3</span>
-            <span
-              id="categoryDisplay"
-              class="category-badge"
-              style="display: none"
-              >📚 Kategori</span
-            >
-            <span
-              id="difficultyDisplay"
-              class="difficulty-badge difficulty-easy"
-              style="display: none"
-              >⭐ Kolay</span
-            >
-            <span
-              id="achievementDisplay"
-              class="achievement-badge"
-              style="display: none"
-              >🏆 Başarı!</span
-            >
-            <span id="score" class="score">💯 Skor: 0</span>
-            <span id="timer" class="timer">⏱️ 00:00</span>
-          </div>
-
           <div class="progress">
             <div id="bar" class="bar"></div>
           </div>
 
           <div class="card">
-            <h2 id="question" class="qtext">Soru yükleniyor…</h2>
+            <div class="display-flex flex-end align-center margin-bottom-1 padding-bottom-half border-bottom-gray gap-half">
+              <!-- Tools Menu -->
+              <div class="tools-menu-container">
+                <button id="toolsMenuBtn" class="btn secondary tools-menu-btn">⚙️ AYARLAR</button>
+                <div id="toolsMenu" class="tools-menu">
+                  
+                  <!-- Tab Headers -->
+                  <div class="tools-tabs">
+                    <button class="tools-tab active" data-tab="basic">📱 Temel</button>
+                    <button class="tools-tab" data-tab="settings">🎯 Ayarlar</button>
+                    <button class="tools-tab" data-tab="tools">⚙️ Araçlar</button>
+                  </div>
+                  
+                  <!-- Temel Tab Content -->
+                  <div class="tools-tab-content active" id="tab-basic">
+                    <button id="showAllBtn" class="tools-menu-item">📚 Tüm Sorular</button>
+                    <button id="favToggle" class="tools-menu-item">⭐ Favoriler</button>
+                    <button id="showMarkedBtn" class="tools-menu-item">📌 İşaretliler</button>
+                    <div class="tools-menu-item">
+                      <input id="search" class="input width-100 font-size-12px" type="text" placeholder="🔍 Soru Ara..."/>
+                    </div>
+                  </div>
+                  
+                  <!-- Ayarlar Tab Content -->
+                  <div class="tools-tab-content" id="tab-settings">
+                    <button id="theme" class="tools-menu-item">🌙 Dark Mode</button>
+                    <div class="tools-menu-item">
+                      <label class="font-size-12px color-muted margin-bottom-4px display-block">Quiz Modu:</label>
+                      <select id="mode" class="select width-100 font-size-12px padding-6px-8px">
+                        <option value="normal">📚 Sıralı Test</option>
+                        <option value="random">🔀 Karışık Test</option>
+                      </select>
+                    </div>
+                    <div class="tools-menu-item">
+                      <label class="font-size-12px color-muted margin-bottom-8px display-block">🎨 Arka Plan:</label>
+                      <select id="backgroundSelector" class="select width-100 font-size-12px" title="Arka Plan Teması">
+                        <option value="default">⚪ Varsayılan</option>
+                        <option value="ocean">🌊 Ocean Blue</option>
+                        <option value="sunset">🌅 Sunset</option>
+                        <option value="tech">💎 Tech Blue</option>
+                        <option value="purple">💜 Purple Dream</option>
+                        <option value="particles">✨ Particles</option>
+                        <option value="glass">🔮 Glass</option>
+                        <option value="space">🌌 Space</option>
+                        <option value="matrix">⚫ Matrix</option>
+                      </select>
+                    </div>
+                    <!-- JSON Kütüphane Bölümü -->
+                    <div class="tools-menu-item">
+                      <label class="font-size-12px color-muted margin-bottom-8px display-block">📚 JSON Kütüphanem:</label>
+                      
+                      <!-- Aktif JSON Durumu + İlerleme -->
+                      <div id="activeJsonStatus" class="font-size-11px background-opt-bg border-radius-6px padding-6px margin-bottom-6px display-none">
+                        <div class="display-flex justify-between margin-bottom-3px">
+                          <span id="activeJsonName">📄 Varsayılan Sorular</span>
+                          <span id="jsonProgress">0/0 ✅</span>
+                        </div>
+                        <div class="display-flex justify-between font-size-10px color-muted">
+                          <span id="sessionTime">⏱ 0 dk</span>
+                          <span id="successRate">📊 %0</span>
+                          <span id="lastSaved">💾 -</span>
+                        </div>
+                      </div>
+                      
+                      <!-- Hızlı JSON Geçiş -->
+                      <div id="jsonQuickSwitch" class="display-none margin-bottom-6px">
+                        <div class="font-size-10px color-muted margin-bottom-3px">📱 Hızlı Geçiş:</div>
+                        <div id="quickSwitchContainer" class="display-flex gap-2px overflow-x-auto padding-2px">
+                          <!-- JSON butonları buraya eklenecek -->
+                        </div>
+                        <div class="text-center font-size-9px color-muted margin-top-2px">👆 Dokunun veya 👈👉 Kaydırın</div>
+                      </div>
+                      
+                      <!-- Ana Aksiyonlar -->
+                      <div class="grid-2-cols gap-4px margin-bottom-6px">
+                        <button id="loadJsonBtn" class="btn ghost font-size-11px padding-6px-4px" title="JSON dosyası yükle">📥 Yükle</button>
+                        <button id="jsonLibraryBtn" class="btn ghost font-size-11px padding-6px-4px" title="JSON kütüphanesi">📚 Kütüphane</button>
+                      </div>
+                      
+                      <div class="grid-2-cols gap-4px margin-bottom-6px">
+                        <button id="mergeJsonBtn" class="btn ghost font-size-11px padding-6px-4px" title="JSON birleştir">🔄 Birleştir</button>
+                        <button id="resetToDefaultBtn" class="btn ghost font-size-11px padding-6px-4px" title="Varsayılan sorulara dön">🏠 Varsayılan</button>
+                      </div>
+                      
+                      <!-- Tehlikeli İşlem -->
+                      <button id="clearAllJsonBtn" class="btn ghost width-100 font-size-11px padding-6px border-red color-red" title="Tüm JSON verilerini temizle">🗑️ Tümünü Temizle</button>
+                      
+                      <input id="jsonFile" type="file" accept=".json" class="display-none" />
+                      <input id="mergeJsonFile" type="file" accept=".json" class="display-none" />
+                    </div>
+                    <div class="tools-menu-item">
+                      <textarea id="noteBox" placeholder="Bu soru hakkında notlarınızı yazın..." class="width-100 min-height-60px padding-8px border-line border-radius-8px font-size-12px background-card color-text" style="resize: vertical;"></textarea>
+                    </div>
+                  </div>
+                  
+                  <!-- Araçlar Tab Content -->
+                  <div class="tools-tab-content" id="tab-tools">
+                    <button id="editQuestionBtn" class="tools-menu-item">✏️ Soru Düzenle</button>
+                    <button id="addQuestionBtn" class="tools-menu-item">➕ Yeni Soru Ekle</button>
+                    <button id="statsToggle" class="tools-menu-item">📊 İstatistik</button>
+                    <button id="adminToggle" class="tools-menu-item">⚙️ Yönetim</button>
+                    <button id="multiplayerToggle" class="tools-menu-item">🎮 Multiplayer</button>
+                    <button id="timerStart" class="tools-menu-item">⏱️ Kronometre</button>
+                    <button id="timerReset" class="tools-menu-item">⏹️ Sıfırla</button>
+                    <button id="finishExamBtn" class="tools-menu-item">🏁 Sınavı Bitir</button>
+                  </div>
+                </div>
+              </div>
+              <span id="userDisplay" class="font-size-12px color-muted margin-right-8px display-none">👤 kullanıcı</span>
+              <button id="logoutBtn" class="btn ghost padding-8px-16px font-size-14px" onclick="logout()">🚪 Çıkış</button>
+            </div>
+            <div class="flex-between-center margin-bottom-1">
+              <div class="display-flex align-center flex-wrap justify-center" style="gap: 0.75rem;">
+                <span id="qcounter" class="chip font-size-14px padding-8px-12px">📋 Soru 1 / 6</span>
+                <input id="jumpTo" class="input compact width-60px margin-left-8px font-size-12px padding-6px-8px border-radius-8px" type="number" min="1" placeholder="#"/>
+                <button id="jumpBtn" class="btn ghost compact padding-6px-12px font-size-12px margin-left-4px border-radius-8px">Git</button>
+                <button id="favBtn" class="btn ghost padding-10px-14px font-size-14px min-height-44px">⭐ Favori</button>
+                <button id="markBtn" class="btn ghost padding-10px-14px font-size-14px min-height-44px">🔖 İşaretle</button>
+                <span id="score" class="timer font-size-13px padding-8px-12px">💯 D:0 Y:0 İ:0 N:0</span>
+                <span id="timer" class="timer font-size-13px padding-8px-12px">⏱️ 00:00</span>
+              </div>
+              <div class="display-flex align-center gap-half">
+                <!-- Score and timer moved to left side -->
+              </div>
+            </div>
+            <div class="flex-start-gap-8px">
+              <h2 id="question" class="qtext">Soru yükleniyor…</h2>
+              <span id="noteIcon" class="note-icon display-none cursor-help font-size-18px position-relative" style="margin-top: 4px;">📝</span>
+            </div>
             <div id="choices" class="choices"></div>
+            
+            <!-- Navigation -->
+            <div class="nav">
+              <button id="prev" class="btn width-80px padding-12px-16px font-size-14px touch-action-manipulation">⬅️ Önceki</button>
+              <button id="reset" class="btn secondary width-80px padding-12px-16px font-size-14px touch-action-manipulation">🔄 Sıfırla</button>
+              <button id="next" class="btn width-80px padding-12px-16px font-size-14px touch-action-manipulation">Sonraki ➡️</button>
+            </div>
 
             <div class="meta-row">
-              <span id="maddeBadge" class="madde-badge" style="display: none"
-                >📜 Madde</span
-              >
-              <button id="markBtn" class="btn ghost">🔖 İşaretle</button>
-              <button id="showMarkedBtn" class="btn secondary">
-                📌 İşaretliler
-              </button>
-              <button id="favBtn" class="btn ghost">⭐ Favori</button>
+              <span id="maddeBadge" class="madde-badge display-none">📜 Madde</span>
             </div>
-
-            <div class="note-area">
-              <label class="form-label">📝 Açıklama/Not:</label>
-              <textarea
-                id="noteBox"
-                rows="3"
-                placeholder="Bu soru hakkında notlarınızı yazın..."
-              ></textarea>
-            </div>
+            
+            <!-- Note Box moved to tools menu -->
           </div>
 
-          <div class="nav">
-            <div class="split">
-              <button id="prev" class="btn">⬅️ Önceki</button>
-              <button id="reset" class="btn secondary">🔄 Sıfırla</button>
-              <button id="next" class="btn">Sonraki ➡️</button>
-            </div>
-          </div>
 
           <div id="pager" class="pager"></div>
 
@@ -108,175 +648,181 @@
             <div id="statsPanel" class="stats-panel"></div>
           </div>
 
+          <!-- Multiplayer Panel -->
+          <div id="multiplayerPanel" class="multiplayer-panel display-none">
+            <h3 class="color-primary margin-0 margin-bottom-1">🎮 Multiplayer Quiz</h3>
+            
+            <!-- Room Creation/Join -->
+            <div id="roomSetup" class="form-group">
+              <div class="grid-2-cols gap-1 margin-bottom-1">
+                <div>
+                  <label class="form-label">🏠 Oda Adı:</label>
+                  <input id="roomName" class="input" type="text" placeholder="Oda adı girin...">
+                </div>
+                <div>
+                  <label class="form-label">👤 Oyuncu Adı:</label>
+                  <input id="playerName" class="input" type="text" placeholder="Oyuncu adınız...">
+                </div>
+                <div>
+                  <label class="form-label">🔐 Oda Şifresi (Opsiyonel):</label>
+                  <input id="roomPassword" class="input" type="password" placeholder="Şifre belirleyin (boş bırakılabilir)...">
+                </div>
+              </div>
+              <div class="display-flex gap-half">
+                <button id="createRoomBtn" class="btn success">🏗️ Oda Oluştur</button>
+                <button id="joinRoomBtn" class="btn">🚪 Odaya Katıl</button>
+                <button id="refreshRoomsBtn" class="btn ghost">🔄 Yenile</button>
+              </div>
+            </div>
+
+            <!-- Available Rooms -->
+            <div id="availableRooms" class="form-group">
+              <label class="form-label">🌐 Mevcut Odalar:</label>
+              <div id="roomsList" class="max-height-150px border-line border-radius-8px padding-8px">
+                <p class="text-center color-muted">Yükleniyor...</p>
+              </div>
+            </div>
+
+            <!-- Game Room -->
+            <div id="gameRoom" class="display-none">
+              <div class="flex-between-center margin-bottom-1">
+                <div>
+                  <h4 id="roomTitle" class="margin-0 color-primary">🏠 Oda: </h4>
+                  <p id="roomCode" class="margin-0 color-muted font-size-0-9em">Kod: </p>
+                </div>
+                <div class="display-flex gap-half">
+                  <button id="startGameBtn" class="btn success display-none">🚀 Oyunu Başlat</button>
+                  <button id="leaveRoomBtn" class="btn danger">🚪 Odadan Çık</button>
+                </div>
+              </div>
+
+              <!-- Players List -->
+              <div class="form-group">
+                <label class="form-label">👥 Oyuncular:</label>
+                <div id="playersList" class="background-card border-line border-radius-8px padding-12px min-height-60px">
+                  <p class="text-center color-muted">Oyuncular yükleniyor...</p>
+                </div>
+              </div>
+
+              <!-- Game Status -->
+              <div id="gameStatus" class="display-none">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <span id="gameTimer" class="timer">⏱️ 00:30</span>
+                  <span id="currentQuestion" class="chip">📋 Soru 1/10</span>
+                  <span id="playersAnswered" class="chip">👥 0/4 cevapladı</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1rem;">
+              <button id="demoModeBtn" class="btn success" class="display-none">🧪 Demo Mode Dene</button>
+              <button id="backToNormalBtn" class="btn secondary">⬅️ Normal Moda Dön</button>
+            </div>
+          </div>
+
+          <!-- Multiplayer Quiz Area -->
+          <div id="multiplayerQuizArea">
+            <div class="multiplayer-grid">
+              <!-- Left Panel: Quiz -->
+              <div>
+                <div class="room-info">
+                  <div>
+                    <strong id="roomNameDisplay">Multiplayer Quiz</strong>
+                    <div id="hostOnlyRoomCode" style="display: none; font-size: 0.9em; color: var(--muted);">
+                      Oda Kodu: <span id="roomCodeDisplay"></span>
+                    </div>
+                    <div class="participants" id="participantsList"></div>
+                  </div>
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <span id="timerDisplay" class="timer">⏱️ 00:00</span>
+                    <span id="scoreDisplay" class="timer">Skor: 0</span>
+                    <button id="deleteRoomBtn" class="btn danger" class="display-none">🗑️ Odayı Sil</button>
+                    <button id="leaveGameRoomBtn" class="btn danger">Çık</button>
+                  </div>
+                </div>
+
+                <div class="progress">
+                  <div id="progressBar" class="progress-bar" style="height: 100%; width: 0; background: linear-gradient(90deg, var(--primary), var(--primary-2)); transition: width 0.3s ease;"></div>
+                </div>
+
+                <h2 id="multiplayerQuestion" class="qtext">Quiz başlamayı bekliyor...</h2>
+                <div id="multiplayerChoices" class="choices"></div>
+
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;" id="hostControls">
+                  <button id="startTimerBtn" class="btn" class="display-none">⏱️ Zamanlayıcı Başlat</button>
+                  <button id="prevQuestionBtn" class="btn secondary" class="display-none">⬅️ Önceki Soru</button>
+                  <button id="nextQuestionBtn" class="btn" class="display-none">Sonraki Soru ➡️</button>
+                  <button id="restartQuizBtn" class="btn secondary" class="display-none">🔄 Quiz Sıfırla</button>
+                </div>
+              </div>
+
+              <!-- Right Panel: Chat -->
+              <div>
+                <h3>💬 Sohbet</h3>
+                <div class="chat-container">
+                  <div class="chat-messages" id="multiplayerChatMessages"></div>
+                  <div class="chat-input-container">
+                    <input type="text" id="multiplayerChatInput" class="input chat-input" placeholder="Mesajınızı yazın..." maxlength="200">
+                    <button id="sendMultiplayerChatBtn" class="btn">Gönder</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- End Screen -->
           <div id="endScreen" class="end-screen">
             <h2>🎉 Quiz Tamamlandı!</h2>
             <p id="resultText">Sonuçlarınız burada görünecek</p>
-            <div
-              style="
-                margin-top: 1.5rem;
-                display: flex;
-                gap: 1rem;
-                justify-content: center;
-                flex-wrap: wrap;
-              "
-            >
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
               <button id="exportCsvBtn" class="btn ghost">📊 CSV İndir</button>
               <button id="exportPdfBtn" class="btn ghost">📄 PDF İndir</button>
-              <button id="restartBtn" class="btn success">
-                🔄 Yeniden Başla
-              </button>
+              <button id="restartBtn" class="btn success">🔄 Yeniden Başla</button>
             </div>
           </div>
         </div>
 
-        <!-- Control Panel -->
-        <div class="control-panel">
-          <div class="control-section">
-            <h3 class="control-title">🎮 Quiz Kontrolleri</h3>
-            <div class="form-group">
-              <label class="form-label">📋 Quiz Modu:</label>
-              <select id="mode" class="select">
-                <option value="normal">📚 Sıralı Test</option>
-                <option value="random">🎲 Rastgele Test</option>
-                <option value="hard">💪 Zor Sorular</option>
-                <option value="countdown">⏰ Zamana Karşı</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">🔍 Soru Ara:</label>
-              <input
-                id="search"
-                class="input"
-                type="text"
-                placeholder="Anahtar kelime girin..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">📂 Kategori:</label>
-              <select id="categoryFilter" class="select">
-                <option value="">🌐 Tüm Kategoriler</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">⭐ Zorluk:</label>
-              <select id="difficultyFilter" class="select">
-                <option value="">🎯 Tüm Seviyeler</option>
-                <option value="easy">🟢 Kolay</option>
-                <option value="medium">🟡 Orta</option>
-                <option value="hard">🔴 Zor</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="control-section">
-            <h3 class="control-title">🚀 Hızlı Erişim</h3>
-            <div class="form-group">
-              <label class="form-label"># Soruya Git:</label>
-              <div style="display: flex; gap: 0.5rem">
-                <input
-                  id="jumpTo"
-                  class="input"
-                  type="number"
-                  min="1"
-                  placeholder="Soru #"
-                  style="flex: 1"
-                />
-                <button id="jumpBtn" class="btn ghost">Git</button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <select id="jumpSelect" class="select"></select>
-            </div>
-
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
-              <button id="jump600" class="btn ghost">600</button>
-              <button id="favToggle" class="btn secondary">⭐ Favoriler</button>
-            </div>
-          </div>
-
-          <div class="control-section">
-            <h3 class="control-title">⚙️ Ayarlar</h3>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
-              <button id="theme" class="btn ghost">🌗 Tema</button>
-              <button id="statsToggle" class="btn secondary">
-                📊 İstatistik
-              </button>
-              <button id="adminToggle" class="btn ghost">⚙️ Yönetim</button>
-            </div>
-
-            <div
-              style="
-                margin-top: 1rem;
-                display: flex;
-                gap: 0.5rem;
-                flex-wrap: wrap;
-              "
-            >
-              <button id="timerStart" class="btn ghost">⏯️ Krono</button>
-              <button id="timerReset" class="btn ghost">⏹️ Sıfırla</button>
-            </div>
-
-            <div style="margin-top: 1rem">
-              <button id="loadJsonBtn" class="btn success" style="width: 100%">
-                📥 JSON Yükle
-              </button>
-              <input id="jsonFile" type="file" accept=".json" />
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Admin Panel -->
       <div id="adminPanel" class="admin-panel">
         <h2 style="margin-top: 0; color: var(--primary)">⚙️ Yönetim Paneli</h2>
-
+        
+        
+        <!-- User Approval Section - Admin Only -->
+        <div id="adminOnlySection" class="form-group" style="border: 2px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 20px; background: #fef3c7; display: none;">
+          <div style="background: #fecaca; border: 1px solid #f87171; border-radius: 6px; padding: 10px; margin-bottom: 15px;">
+            <p style="color: #991b1b; font-size: 14px; margin: 0;"><strong>⚠️ Firestore Security Rules Uyarısı:</strong></p>
+            <p style="color: #991b1b; font-size: 12px; margin: 5px 0 0 0;">Eğer onaylama hatası alıyorsanız, Firebase Console > Firestore Database > Rules bölümünden güvenlik kurallarını güncelleyin.</p>
+          </div>
+          <label class="form-label" style="color: #92400e; font-weight: bold;">👥 Bekleyen Kullanıcı Onayları:</label>
+          <div id="pendingUsers" style="max-height: 200px; overflow-y: auto;">
+            <p class="color-gray text-center margin-10px-0">Yükleniyor...</p>
+          </div>
+          <button id="refreshPendingBtn" class="btn secondary" class="width-100 margin-top-10px">🔄 Listeyi Yenile</button>
+        </div>
+        
         <div class="form-group">
           <label class="form-label">❓ Soru Metni:</label>
-          <textarea
-            id="adminQuestion"
-            class="form-input"
-            rows="3"
-            placeholder="Sorunuzu buraya yazın..."
-          ></textarea>
+          <textarea id="adminQuestion" class="form-input" rows="3" placeholder="Sorunuzu buraya yazın..."></textarea>
         </div>
 
         <div class="form-group">
           <label class="form-label">📋 Seçenekler:</label>
           <div id="adminOptions">
             <div class="option-input">
-              <input
-                type="text"
-                class="form-input"
-                placeholder="A) Seçenek 1"
-                data-option="0"
-              />
-              <button class="btn danger" onclick="removeOption(this)">
-                ❌
-              </button>
+              <input type="text" class="form-input" placeholder="A) Seçenek 1" data-option="0" />
+              <button class="btn danger" onclick="removeOption(this)">❌</button>
             </div>
             <div class="option-input">
-              <input
-                type="text"
-                class="form-input"
-                placeholder="B) Seçenek 2"
-                data-option="1"
-              />
-              <button class="btn danger" onclick="removeOption(this)">
-                ❌
-              </button>
+              <input type="text" class="form-input" placeholder="B) Seçenek 2" data-option="1" />
+              <button class="btn danger" onclick="removeOption(this)">❌</button>
             </div>
           </div>
           <button id="addOption" class="btn ghost">➕ Seçenek Ekle</button>
         </div>
 
-        <div
-          style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem"
-        >
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem">
           <div class="form-group">
             <label class="form-label">✅ Doğru Cevap:</label>
             <select id="adminAnswer" class="form-input">
@@ -285,36 +831,11 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">📂 Kategori:</label>
-            <input id="adminCategory" class="form-input" placeholder="Genel" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">⭐ Zorluk:</label>
-            <select id="adminDifficulty" class="form-input">
-              <option value="easy">🟢 Kolay</option>
-              <option value="medium">🟡 Orta</option>
-              <option value="hard">🔴 Zor</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">📜 Madde No (opsiyonel):</label>
-          <input
-            id="adminMadde"
-            class="form-input"
-            type="number"
-            placeholder="Madde numarası"
-          />
         </div>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap">
           <button id="addQuestion" class="btn success">➕ Soru Ekle</button>
-          <button id="editQuestion" class="btn" style="display: none">
-            ✏️ Güncelle
-          </button>
+          <button id="editQuestion" class="btn" style="display: none">✏️ Güncelle</button>
           <button id="deleteQuestion" class="btn danger">🗑️ Sil</button>
           <button id="exportJson" class="btn ghost">📤 JSON Export</button>
           <button id="clearAll" class="btn danger">🧹 Hepsini Sil</button>
@@ -327,14 +848,7 @@
       <div class="modal-content">
         <h3 id="modalTitle">Onay</h3>
         <p id="modalText">İşlemi onaylıyor musunuz?</p>
-        <div
-          style="
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1.5rem;
-          "
-        >
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
           <button id="modalConfirm" class="btn success">✅ Evet</button>
           <button id="modalCancel" class="btn secondary">❌ Hayır</button>
         </div>
@@ -343,8 +857,2128 @@
 
     <!-- Toast notifications -->
     <div id="toast" class="toast"></div>
+    </div>
 
+    <!-- Firebase SDK -->
+    <script src="security-utils.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <script>
+      // Global değişkenler
+      var auth;
+      var db;
+      var currentAuthUser = null;
+      
+      // Firebase configuration is now loaded from firebase-config.js
+      
+      // Utility functions
+      function showError(message) {
+          // Try to show error in the currently visible form
+          let errorDiv = document.getElementById('authError');
+          
+          // If the first error div doesn't exist or is not visible, try the second one
+          if (!errorDiv || (errorDiv.offsetParent === null)) {
+              errorDiv = document.getElementById('authError2');
+          }
+          
+          if (errorDiv) {
+              errorDiv.textContent = message;
+              errorDiv.style.display = 'block';
+              setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+          }
+      }
+      
+      function showSuccess(message) {
+          // Try to show success in the currently visible form
+          let successDiv = document.getElementById('authSuccess');
+          
+          // If the first success div doesn't exist or is not visible, try the second one
+          if (!successDiv || (successDiv.offsetParent === null)) {
+              successDiv = document.getElementById('authSuccess2');
+          }
+          
+          if (successDiv) {
+              successDiv.textContent = message;
+              successDiv.style.display = 'block';
+              setTimeout(() => { successDiv.style.display = 'none'; }, 3000);
+          }
+      }
+      
+      function setLoading(isLoading) {
+          const authCard = document.querySelector('.auth-card');
+          if (authCard) {
+              if (isLoading) {
+                  authCard.classList.add('auth-loading');
+              } else {
+                  authCard.classList.remove('auth-loading');
+              }
+          }
+      }
+      
+      function showResetError(message) {
+          const errorDiv = document.getElementById('resetError');
+          if (errorDiv) {
+              errorDiv.textContent = message;
+              errorDiv.style.display = 'block';
+          }
+      }
+      
+      function showResetSuccess(message) {
+          const successDiv = document.getElementById('resetSuccess');
+          if (successDiv) {
+              successDiv.textContent = message;
+              successDiv.style.display = 'block';
+          }
+      }
+      
+      // Auth screen control
+      function showAuthScreen() {
+          document.getElementById('authScreen').style.display = 'flex';
+          document.documentElement.classList.remove('auth-ok');
+      }
+      
+      function showMainApp() {
+          document.getElementById('authScreen').style.display = 'none';
+          document.documentElement.classList.add('auth-ok');
+      }
+      
+      function hideAuthScreen() {
+          document.getElementById('authScreen').style.display = 'none';
+          document.documentElement.classList.add('auth-ok');
+      }
+      
+      function showWaitingScreen(email) {
+          const authScreen = document.getElementById('authScreen');
+          const authCard = authScreen.querySelector('.auth-card');
+          
+          authCard.innerHTML = `
+              <h1 style="color: #f59e0b;">⏳ Onay Bekleniyor</h1>
+              <div style="margin: 20px 0; padding: 20px; background: #fef3c7; border-radius: 12px; border: 1px solid #f59e0b;">
+                  <p style="color: #92400e; font-weight: 600; margin-bottom: 10px;">📧 ${email}</p>
+                  <p style="color: #78716c; margin-bottom: 15px;">Hesabınız admin onayı bekliyor. Onay aldıktan sonra otomatik olarak giriş yapabileceksiniz.</p>
+                  <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                      <p class="color-gray font-size-14px margin-5px-0">🔄 Onay durumunu kontrol etmek için sayfayı yenileyin</p>
+                      <p class="color-gray font-size-14px margin-5px-0">📧 Admin tarafından onaylandığınızda e-posta bildirimi alabilirsiniz</p>
+                  </div>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 20px;">
+                  <button onclick="location.reload()" class="auth-btn" class="flex-1">🔄 Yenile</button>
+                  <button onclick="logout()" class="auth-btn secondary" class="flex-1">🚪 Çıkış</button>
+              </div>
+          `;
+          
+          authScreen.style.display = 'flex';
+          document.documentElement.classList.remove('auth-ok');
+      }
+      
+      // Tab switching
+      function switchTab(tab) {
+          const loginTab = document.getElementById('loginTab');
+          const registerTab = document.getElementById('registerTab');
+          const loginForm = document.getElementById('loginForm');
+          const registerForm = document.getElementById('registerForm');
+          
+          if (tab === 'login') {
+              loginTab.classList.add('active');
+              registerTab.classList.remove('active');
+              loginForm.style.display = 'block';
+              registerForm.style.display = 'none';
+          } else {
+              loginTab.classList.remove('active');
+              registerTab.classList.add('active');
+              loginForm.style.display = 'none';
+              registerForm.style.display = 'block';
+          }
+          
+          // Clear messages
+          document.getElementById('authError').style.display = 'none';
+          document.getElementById('authSuccess').style.display = 'none';
+      }
+      
+      // Switch tab function for second auth form
+      function switchTab2(tab) {
+          const loginTab2 = document.getElementById('loginTab2');
+          const registerTab2 = document.getElementById('registerTab2');
+          const loginForm2 = document.getElementById('loginForm2');
+          const registerForm2 = document.getElementById('registerForm2');
+          
+          if (tab === 'login') {
+              loginTab2.classList.add('active');
+              registerTab2.classList.remove('active');
+              loginForm2.style.display = 'block';
+              registerForm2.style.display = 'none';
+          } else {
+              loginTab2.classList.remove('active');
+              registerTab2.classList.add('active');
+              loginForm2.style.display = 'none';
+              registerForm2.style.display = 'block';
+          }
+          
+          // Clear messages for second form (if they exist)
+          const authError2 = document.getElementById('authError2');
+          const authSuccess2 = document.getElementById('authSuccess2');
+          if (authError2) authError2.style.display = 'none';
+          if (authSuccess2) authSuccess2.style.display = 'none';
+      }
+      
+      // Modal functions  
+      function showForgotPasswordModal() {
+          const modal = document.getElementById('forgotPasswordModal');
+          modal.style.display = 'flex';
+          
+          // Try to get email from either the original form or the second form
+          let loginEmail = document.getElementById('loginEmail');
+          
+          // If original form element doesn't exist or is not visible, try the second form
+          if (!loginEmail || (loginEmail.offsetParent === null)) {
+              loginEmail = document.getElementById('loginEmail2');
+          }
+          
+          const resetEmailInput = document.getElementById('resetEmail');
+          if (loginEmail && resetEmailInput) {
+              resetEmailInput.value = loginEmail.value.trim();
+              resetEmailInput.focus();
+          }
+      }
+      
+      function hideForgotPasswordModal() {
+          document.getElementById('forgotPasswordModal').style.display = 'none';
+          document.getElementById('resetEmail').value = '';
+      }
+      
+      // Auth functions
+      async function loginWithEmail() {
+          // Try to get values from either the original form or the second form
+          let emailEl = document.getElementById('loginEmail');
+          let passwordEl = document.getElementById('loginPassword');
+          
+          // If original form elements don't exist or are not visible, try the second form
+          if (!emailEl || !passwordEl || (emailEl.offsetParent === null)) {
+              emailEl = document.getElementById('loginEmail2');
+              passwordEl = document.getElementById('loginPassword2');
+          }
+          
+          if (!emailEl || !passwordEl) {
+              showError('Form elemanları bulunamadı.');
+              return;
+          }
+          
+          const email = emailEl.value.trim();
+          const password = passwordEl.value.trim();
+          
+          if (!email || !password) {
+              showError('E-posta ve şifre gereklidir.');
+              return;
+          }
+          
+          if (!auth) {
+              showError('Firebase henüz yüklenmedi. Lütfen bekleyin...');
+              return;
+          }
+          
+          setLoading(true);
+          
+          // Try real Firebase authentication first
+          try {
+              if (auth && auth.signInWithEmailAndPassword && typeof auth.signInWithEmailAndPassword === 'function') {
+                  console.info('🔧 Attempting Firebase authentication...');
+                  await auth.signInWithEmailAndPassword(email, password);
+                  // Auth state listener will handle the rest
+                  setLoading(false);
+                  return;
+              }
+          } catch (error) {
+              console.info('🔧 Firebase authentication failed, trying demo mode...', error.message);
+          }
+          
+          // Fallback to demo mode authentication
+          if (window.AUTH_FALLBACK?.enabled) {
+              const user = AUTH_FALLBACK.users.get(email);
+              if (user && user.password === password) {
+                  // Successful demo login
+                  showSuccess('Giriş başarılı! ✨');
+                  
+                  const mockUser = {
+                      uid: user.uid,
+                      email: user.email,
+                      emailVerified: true
+                  };
+                  
+                  currentAuthUser = mockUser;
+                  
+                  if (user.isApproved) {
+                      showWelcomeMessage(mockUser);
+                      hideAuthScreen();
+                  } else {
+                      showWaitingScreen(user.email);
+                  }
+                  setLoading(false);
+                  return;
+              }
+          }
+          
+          // Additional demo credentials
+          const demoCredentials = [
+              { email: 'demo@test.com', password: 'demo123', name: 'Demo User' },
+              { email: 'user@demo.com', password: 'user123', name: 'Demo User 2' }
+          ];
+          
+          const demoUser = demoCredentials.find(cred => 
+              cred.email === email && cred.password === password
+          );
+          
+          if (demoUser) {
+              showSuccess('Giriş başarılı! ✨');
+              
+              currentAuthUser = {
+                  uid: 'demo-' + Date.now(),
+                  email: demoUser.email,
+                  emailVerified: true
+              };
+              
+              showWelcomeMessage(currentAuthUser);
+              hideAuthScreen();
+              setLoading(false);
+              return;
+          }
+          
+          // No valid credentials
+          showError('⚠️ Geçersiz giriş bilgileri!\n\n📋 Demo kullanıcılar:\n• test@demo.com / test123\n• admin@demo.com / admin123\n• demo@test.com / demo123');
+          setLoading(false);
+      }
+      
+      async function registerWithEmail() {
+          // Try to get values from either the original form or the second form
+          let emailEl = document.getElementById('registerEmail');
+          let passwordEl = document.getElementById('registerPassword');
+          let confirmPasswordEl = document.getElementById('confirmPassword');
+          
+          // If original form elements don't exist or are not visible, try the second form
+          if (!emailEl || !passwordEl || !confirmPasswordEl || (emailEl.offsetParent === null)) {
+              emailEl = document.getElementById('registerEmail2');
+              passwordEl = document.getElementById('registerPassword2');
+              confirmPasswordEl = document.getElementById('confirmPassword2');
+          }
+          
+          if (!emailEl || !passwordEl || !confirmPasswordEl) {
+              showError('Form elemanları bulunamadı.');
+              return;
+          }
+          
+          const email = emailEl.value.trim();
+          const password = passwordEl.value.trim();
+          const confirmPassword = confirmPasswordEl.value.trim();
+          
+          if (!email || !password || !confirmPassword) {
+              showError('Tüm alanları doldurun.');
+              return;
+          }
+          
+          if (password !== confirmPassword) {
+              showError('Şifreler eşleşmiyor.');
+              return;
+          }
+          
+          if (!auth || !db) {
+              showError('Firebase henüz yüklenmedi. Lütfen bekleyin...');
+              return;
+          }
+          
+          setLoading(true);
+          
+          // Try real Firebase registration first
+          try {
+              if (auth && auth.createUserWithEmailAndPassword && typeof auth.createUserWithEmailAndPassword === 'function') {
+                  console.info('🔧 Attempting Firebase registration...');
+                  const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                  const user = userCredential.user;
+                  
+                  // Create user document in Firestore
+                  if (db && db.collection) {
+                      await db.collection('users').doc(user.uid).set({
+                          uid: user.uid,
+                          email: user.email,
+                          isApproved: false, // Require admin approval for production
+                          isAdmin: false,
+                          isFirstUser: false,
+                          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                      });
+                  }
+                  
+                  showSuccess('🎉 Kayıt başarılı! Admin onayı bekleniyor...');
+                  setLoading(false);
+                  return;
+              }
+          } catch (error) {
+              console.info('🔧 Firebase registration failed, trying demo mode...', error.message);
+              if (error.code === 'auth/email-already-in-use') {
+                  showError('⚠️ Bu e-posta adresi zaten kayıtlı.');
+                  setLoading(false);
+                  return;
+              }
+          }
+          
+          // Fallback to demo mode registration
+          // Check if user already exists in fallback
+          if (window.AUTH_FALLBACK?.enabled && AUTH_FALLBACK.users.has(email)) {
+              showError('⚠️ Bu e-posta adresi zaten kayıtlı.');
+              setLoading(false);
+              return;
+          }
+          
+          // Demo mode registration
+          try {
+              const newUser = {
+                  uid: 'demo-user-' + Date.now(),
+                  email: email,
+                  password: password,
+                  isApproved: true, // Auto-approve for demo
+                  isFirstUser: false,
+                  createdAt: new Date().toISOString()
+              };
+              
+              // Save to localStorage
+              const existingUsers = JSON.parse(localStorage.getItem('fallback_users') || '[]');
+              existingUsers.push(newUser);
+              localStorage.setItem('fallback_users', JSON.stringify(existingUsers));
+              
+              // Add to runtime fallback
+              if (window.AUTH_FALLBACK) {
+                  AUTH_FALLBACK.users.set(email, newUser);
+              }
+              
+              showSuccess('🎉 Kayıt başarılı! (Demo Mode)\n\nŞimdi giriş yapabilirsiniz.');
+              
+              // Auto switch to login tab
+              switchTab('login');
+              
+          } catch (error) {
+              console.error('Register error:', error);
+              showError('Kayıt hatası: ' + (error.message || 'Bilinmeyen hata'));
+          } finally {
+              setLoading(false);
+          }
+      }
+      
+      
+      async function sendPasswordReset() {
+          const email = document.getElementById('resetEmail').value.trim();
+          
+          if (!email) {
+              showResetError('E-posta adresi gereklidir.');
+              return;
+          }
+          
+          if (!auth) {
+              showResetError('Firebase henüz yüklenmedi.');
+              return;
+          }
+          
+          try {
+              await auth.sendPasswordResetEmail(email);
+              showResetSuccess('Şifre sıfırlama e-postası gönderildi!');
+              setTimeout(hideForgotPasswordModal, 3000);
+          } catch (error) {
+              console.error('Reset error:', error);
+              showResetError('E-posta gönderim hatası: ' + error.message);
+          }
+      }
+      
+      // Firebase initialization with fallback support
+      function initFirebase() {
+          try {
+              // Try to initialize Firebase with real config first
+              if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && 
+                  window.FIREBASE_CONFIG.apiKey !== "demo-key-fallback-mode" && 
+                  window.FIREBASE_CONFIG.apiKey !== "your-actual-api-key") {
+                  
+                  console.info('🔧 Initializing Firebase with production config...');
+                  firebase.initializeApp(window.FIREBASE_CONFIG);
+                  auth = firebase.auth();
+                  db = firebase.firestore();
+                  
+                  // Auth state listener for production Firebase
+                  auth.onAuthStateChanged(async function(user) {
+                      if (user) {
+                          try {
+                              const userDoc = await db.collection('users').doc(user.uid).get();
+                              if (userDoc.exists && userDoc.data().isApproved) {
+                                  currentAuthUser = user;
+                                  showWelcomeMessage(user);
+                                  hideAuthScreen();
+                                  
+                                  setTimeout(() => {
+                                      const logoutBtn = document.getElementById('logoutBtn');
+                                      if (logoutBtn) {
+                                          logoutBtn.onclick = null;
+                                          logoutBtn.addEventListener('click', logout);
+                                      }
+                                  }, 100);
+                                  
+                                  checkAdminAndShowPanel(userDoc.data().isAdmin);
+                              } else {
+                                  currentAuthUser = null;
+                                  showWaitingScreen(user.email);
+                              }
+                          } catch (error) {
+                              console.error('User check error:', error);
+                              await auth.signOut();
+                              showError('Hesap kontrolü yapılamadı. Tekrar deneyin.');
+                              showAuthScreen();
+                          }
+                      } else {
+                          currentAuthUser = null;
+                          showAuthScreen();
+                      }
+                  });
+                  
+                  console.info('✅ Firebase production mode initialized successfully');
+                  return;
+              } else {
+                  throw new Error('Using fallback mode - no valid Firebase config');
+              }
+          } catch (error) {
+              console.info('🔧 Using demo mode - Firebase fallback active');
+              console.info('📋 To use production: Update firebase-config.js with real Firebase credentials');
+              
+              // Set dummy auth and db objects for demo mode
+              auth = {
+                  signInWithEmailAndPassword: () => Promise.reject(new Error('Demo mode - using fallback auth')),
+                  createUserWithEmailAndPassword: () => Promise.reject(new Error('Demo mode - using fallback auth')),
+                  onAuthStateChanged: () => {},
+                  signOut: () => Promise.resolve()
+              };
+              
+              db = {
+                  collection: () => ({
+                      doc: () => ({
+                          set: () => Promise.resolve(),
+                          get: () => Promise.resolve({ exists: false, data: () => null })
+                      }),
+                      get: () => Promise.resolve({ empty: true })
+                  })
+              };
+              
+              // Load localStorage fallback users into runtime
+              if (window.AUTH_FALLBACK?.enabled) {
+                  const savedUsers = JSON.parse(localStorage.getItem('fallback_users') || '[]');
+                  savedUsers.forEach(user => {
+                      AUTH_FALLBACK.users.set(user.email, user);
+                  });
+              }
+              
+              console.info('✅ Demo authentication system ready');
+          }
+      }
+      
+      // Helper function to extract username from email
+      function getUsernameFromEmail(email) {
+          return email ? email.split('@')[0] : 'kullanıcı';
+      }
+          
+      // Show welcome message and update user display
+      function showWelcomeMessage(user) {
+          const username = getUsernameFromEmail(user.email);
+          
+          // Show welcome toast for 3 seconds
+          if (typeof showToast === 'function') {
+              showToast(`👋 HOŞGELDİNİZ ${username}!`, 'success');
+          }
+          
+          // Update user display next to logout button
+          const userDisplay = document.getElementById('userDisplay');
+          if (userDisplay) {
+              userDisplay.textContent = `👤 ${username}`;
+              userDisplay.style.display = 'inline-block';
+          }
+      }
+      
+      // Event listeners
+      document.addEventListener('DOMContentLoaded', function() {
+          showAuthScreen();
+          initFirebase();
+          
+          // Tab buttons with safe element checking
+          const loginTab = document.getElementById('loginTab');
+          const registerTab = document.getElementById('registerTab');
+          
+          if (loginTab) {
+              loginTab.addEventListener('click', () => switchTab('login'));
+          } else {
+              console.warn('loginTab element not found');
+          }
+          
+          if (registerTab) {
+              registerTab.addEventListener('click', () => switchTab('register'));
+          } else {
+              console.warn('registerTab element not found');
+          }
+          
+          // Auth buttons with safe element checking
+          const loginBtn = document.getElementById('loginBtn');
+          const registerBtn = document.getElementById('registerBtn');
+          const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+          
+          if (loginBtn) {
+              loginBtn.addEventListener('click', loginWithEmail);
+          } else {
+              console.warn('loginBtn element not found');
+          }
+          
+          if (registerBtn) {
+              registerBtn.addEventListener('click', registerWithEmail);
+          } else {
+              console.warn('registerBtn element not found');
+          }
+          
+          if (forgotPasswordBtn) {
+              forgotPasswordBtn.addEventListener('click', showForgotPasswordModal);
+          } else {
+              console.warn('forgotPasswordBtn element not found');
+          }
+          
+          // Modal buttons with safe element checking
+          const sendResetBtn = document.getElementById('sendResetBtn');
+          const cancelResetBtn = document.getElementById('cancelResetBtn');
+          
+          if (sendResetBtn) {
+              sendResetBtn.addEventListener('click', sendPasswordReset);
+          } else {
+              console.warn('sendResetBtn element not found');
+          }
+          
+          if (cancelResetBtn) {
+              cancelResetBtn.addEventListener('click', hideForgotPasswordModal);
+          } else {
+              console.warn('cancelResetBtn element not found');
+          }
+          
+          // Enter key handlers with safe element checking
+          const loginPasswordField = document.getElementById('loginPassword');
+          const confirmPasswordField = document.getElementById('confirmPassword');
+          const resetEmailField = document.getElementById('resetEmail');
+          
+          if (loginPasswordField) {
+              loginPasswordField.addEventListener('keypress', function(e) {
+                  if (e.key === 'Enter') loginWithEmail();
+              });
+          }
+          
+          if (confirmPasswordField) {
+              confirmPasswordField.addEventListener('keypress', function(e) {
+                  if (e.key === 'Enter') registerWithEmail();
+              });
+          }
+          
+          if (resetEmailField) {
+              resetEmailField.addEventListener('keypress', function(e) {
+                  if (e.key === 'Enter') sendPasswordReset();
+              });
+          }
+          
+          
+          // Initialize multiplayer system
+          if (typeof multiplayerQuiz !== 'undefined') {
+              multiplayerQuiz.attachEventListeners();
+          }
+          
+          // Refresh pending users button
+          document.getElementById('refreshPendingBtn').addEventListener('click', loadPendingUsers);
+          
+          // Logout button
+          const logoutBtn = document.getElementById('logoutBtn');
+          if (logoutBtn) {
+              logoutBtn.addEventListener('click', logout);
+          } else {
+              console.warn('❌ Logout button not found in DOM');
+          }
+      });
+      
+      // Admin functions
+      function checkAdminAndShowPanel(isAdmin) {
+          if (isAdmin) {
+              document.getElementById('adminOnlySection').style.display = 'block';
+              loadPendingUsers();
+          } else {
+              document.getElementById('adminOnlySection').style.display = 'none';
+          }
+      }
+      
+      async function loadPendingUsers() {
+          const container = document.getElementById('pendingUsers');
+          if (!container) return;
+          
+          container.innerHTML = '<p class="color-gray text-center margin-10px-0">Yükleniyor...</p>';
+          
+          try {
+              // Try to get pending users - handle permission errors gracefully
+              let snapshot;
+              try {
+                  // Önce basit query ile dene
+                  snapshot = await db.collection('users')
+                      .where('isApproved', '==', false)
+                      .get();
+              } catch (queryError) {
+                  // Eğer query başarısız olursa, tüm kullanıcıları getir ve filtrele
+                  try {
+                      const allUsers = await db.collection('users').get();
+                      const filteredDocs = [];
+                      allUsers.forEach(doc => {
+                          if (doc.data().isApproved === false) {
+                              filteredDocs.push(doc);
+                          }
+                      });
+                      snapshot = { empty: filteredDocs.length === 0, forEach: (callback) => filteredDocs.forEach(callback) };
+                  } catch (fallbackError) {
+                      console.error('All queries failed:', fallbackError);
+                      throw fallbackError;
+                  }
+              }
+              
+              if (snapshot.empty) {
+                  container.innerHTML = '<p style="color: #10b981; text-align: center; margin: 10px 0;">✅ Bekleyen kullanıcı yok!</p>';
+                  return;
+              }
+              
+              container.innerHTML = '';
+              snapshot.forEach(doc => {
+                  const userData = doc.data();
+                  const userDiv = document.createElement('div');
+                  userDiv.style.cssText = 'border: 1px solid #d1d5db; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: white;';
+                  
+                  const timeStr = userData.requestedAt ? 
+                      new Date(userData.requestedAt.toDate()).toLocaleString('tr-TR') : 
+                      'Bilinmiyor';
+                  
+                  userDiv.innerHTML = `
+                      <div style="margin-bottom: 8px;">
+                          <strong style="color: #1f2937;">📧 ${userData.email}</strong>
+                          <div style="font-size: 12px; color: #6b7280;">🕐 ${timeStr}</div>
+                      </div>
+                      <div class="display-flex gap-8px">
+                          <button onclick="approveUser('${doc.id}', '${userData.email}')" 
+                                  class="btn success" class="flex-1 padding-6px-12px font-size-14px">
+                              ✅ Onayla
+                          </button>
+                          <button onclick="rejectUser('${doc.id}', '${userData.email}')" 
+                                  class="btn danger" class="flex-1 padding-6px-12px font-size-14px">
+                              ❌ Reddet
+                          </button>
+                      </div>
+                  `;
+                  
+                  container.appendChild(userDiv);
+              });
+              
+          } catch (error) {
+              console.error('Pending users load error:', error);
+              container.innerHTML = '<p style="color: #ef4444; text-align: center; margin: 10px 0;">❌ Yükleme hatası!</p>';
+          }
+      }
+      
+      async function approveUser(uid, email) {
+          try {
+              
+              // Check if current user exists and is admin
+              if (!currentAuthUser || !currentAuthUser.uid) {
+                  throw new Error('Oturum açmamış kullanıcı');
+              }
+              
+              const currentUserDoc = await db.collection('users').doc(currentAuthUser.uid).get();
+              if (!currentUserDoc.exists || !currentUserDoc.data().isAdmin) {
+                  throw new Error('Admin yetkisi gerekli');
+              }
+              
+              // Update user approval status
+              const result = await db.collection('users').doc(uid).update({
+                  isApproved: true,
+                  approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                  approvedBy: currentAuthUser.uid
+              });
+              
+              showToast(`✅ ${email} onaylandı!`, 'success');
+              loadPendingUsers(); // Refresh list
+          } catch (error) {
+              console.error('User approval error:', error);
+              
+              let errorMessage = 'Bilinmeyen hata oluştu';
+              
+              if (error.code === 'permission-denied') {
+                  errorMessage = 'Bu işlem için yetkiniz yok. Firestore security rules kontrol edilmeli.';
+              } else if (error.code === 'not-found') {
+                  errorMessage = 'Kullanıcı bulunamadı';
+              } else if (error.message) {
+                  errorMessage = error.message;
+              }
+              
+              showToast(`❌ Onaylama hatası: ${errorMessage}`, 'error');
+          }
+      }
+      
+      async function rejectUser(uid, email) {
+          if (confirm(`❌ ${email} adresini reddetmek istediğinizden emin misiniz?\n\nBu işlem kullanıcının hesabını siler.`)) {
+              try {
+                  
+                  // Check if current user exists and is admin
+                  if (!currentAuthUser || !currentAuthUser.uid) {
+                      throw new Error('Oturum açmamış kullanıcı');
+                  }
+                  
+                  const currentUserDoc = await db.collection('users').doc(currentAuthUser.uid).get();
+                  if (!currentUserDoc.exists || !currentUserDoc.data().isAdmin) {
+                      throw new Error('Admin yetkisi gerekli');
+                  }
+                  
+                  // Delete from Firestore
+                  await db.collection('users').doc(uid).delete();
+                  
+                  showToast(`❌ ${email} reddedildi ve hesabı silindi!`, 'success');
+                  loadPendingUsers(); // Refresh list
+              } catch (error) {
+                  console.error('User rejection error:', error);
+                  
+                  let errorMessage = 'Bilinmeyen hata oluştu';
+                  
+                  if (error.code === 'permission-denied') {
+                      errorMessage = 'Bu işlem için yetkiniz yok. Firestore security rules kontrol edilmeli.';
+                  } else if (error.code === 'not-found') {
+                      errorMessage = 'Kullanıcı bulunamadı';
+                  } else if (error.message) {
+                      errorMessage = error.message;
+                  }
+                  
+                  showToast(`❌ Reddetme hatası: ${errorMessage}`, 'error');
+              }
+          }
+      }
+      
+      // Logout function
+      async function logout() {
+          try {
+              if (!auth) {
+                  console.error('Auth not initialized');
+                  showError('Authentication sistemi henüz yüklenmedi');
+                  return;
+              }
+              
+              await auth.signOut();
+              
+              currentAuthUser = null;
+              
+              // Hide user display
+              const userDisplay = document.getElementById('userDisplay');
+              if (userDisplay) {
+                  userDisplay.style.display = 'none';
+              }
+              
+              // Reset auth screen to original login form
+              const authScreen = document.getElementById('authScreen');
+              const authCard = authScreen.querySelector('.auth-card');
+              
+              // Restore original login form
+              authCard.innerHTML = `
+                  <h1>Quiz Uygulaması</h1>
+                  <p>Devam etmek için giriş yapın</p>
+                  
+                  <div class="auth-tabs">
+                    <button type="button" id="loginTab2" class="auth-tab active">Giriş Yap</button>
+                    <button type="button" id="registerTab2" class="auth-tab">Kayıt Ol</button>
+                  </div>
+                  
+                  <!-- Login Form -->
+                  <div id="loginForm2">
+                    <input type="email" id="loginEmail2" class="auth-input" placeholder="E-posta adresiniz">
+                    <input type="password" id="loginPassword2" class="auth-input" placeholder="Şifreniz">
+                    <button type="button" id="loginBtn2" class="auth-btn">🔑 Giriş Yap</button>
+                    <button type="button" id="forgotPasswordBtn2" class="auth-btn secondary" style="margin-top: 10px; padding: 8px 16px; font-size: 14px; width: 100%;">🤔 Şifremi Unuttum</button>
+                  </div>
+                  
+                  <!-- Register Form -->
+                  <div id="registerForm2" class="display-none">
+                    <input type="email" id="registerEmail2" class="auth-input" placeholder="E-posta adresiniz">
+                    <input type="password" id="registerPassword2" class="auth-input" placeholder="Şifre (en az 6 karakter)">
+                    <input type="password" id="confirmPassword2" class="auth-input" placeholder="Şifre tekrar">
+                    <button type="button" id="registerBtn2" class="auth-btn">📝 Kayıt Ol</button>
+                  </div>
+                  
+                  <div class="auth-error" id="authError2" class="display-none"></div>
+                  <div class="auth-success" id="authSuccess2" class="display-none"></div>
+                  
+                  
+                  <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+                    Güvenli Firebase Authentication sistemi
+                  </p>
+              `;
+              
+              // Re-attach event listeners
+              document.getElementById('loginTab2').addEventListener('click', () => switchTab2('login'));
+              document.getElementById('registerTab2').addEventListener('click', () => switchTab2('register'));
+              document.getElementById('loginBtn2').addEventListener('click', loginWithEmail);
+              document.getElementById('registerBtn2').addEventListener('click', registerWithEmail);
+                  document.getElementById('forgotPasswordBtn2').addEventListener('click', showForgotPasswordModal);
+              
+              // Enter key handlers
+              document.getElementById('loginPassword2').addEventListener('keypress', function(e) {
+                  if (e.key === 'Enter') loginWithEmail();
+              });
+              document.getElementById('confirmPassword2').addEventListener('keypress', function(e) {
+                  if (e.key === 'Enter') registerWithEmail();
+              });
+              
+              showAuthScreen();
+              showSuccess('✅ Çıkış yapıldı.');
+          } catch (error) {
+              console.error('Logout error:', error);
+              showError('❌ Çıkış yapılırken hata oluştu: ' + error.message);
+          }
+      }
+
+      // ==============================================
+      // MULTIPLAYER QUIZ FUNCTIONS
+      // ==============================================
+
+      // Multiplayer state variables
+      let isMultiplayerMode = false;
+      let currentRoomId = null;
+      let currentUser = null;
+      let currentRoom = null;
+      let isHost = false;
+      let multiplayerUserAnswers = {};
+      let unsubscribeRoom = null;
+      let unsubscribeChat = null;
+      let unsubscribeNotifications = null;
+      let multiplayerTimerInterval = null;
+
+      // Get questions from the main QUESTIONS array (loaded from JSON)
+      function getMultiplayerQuestions() {
+        // Use the main QUESTIONS array if available, otherwise fallback to sample
+        if (typeof QUESTIONS !== 'undefined' && QUESTIONS.length > 0) {
+          return QUESTIONS;
+        }
+        
+        // Fallback sample questions if no JSON loaded
+        return [
+          {
+            q: "Türkiye'nin başkenti neresidir?",
+            options: ["İstanbul", "Ankara", "İzmir", "Bursa"],
+            answer: "Ankara",
+            category: "Genel Kültür",
+            difficulty: "easy"
+          },
+          {
+            q: "İstiklal Marşı'nın yazarı kimdir?",
+            options: ["Mehmet Akif Ersoy", "Namık Kemal", "Yahya Kemal", "Ziya Gökalp"],
+            answer: "Mehmet Akif Ersoy",
+            category: "Tarih", 
+            difficulty: "medium"
+          },
+          {
+            q: "TSK'da tümen mi kolordu mu daha büyüktür?",
+            options: ["Tümen", "Kolordu", "Eşittir", "Bağlıdır"],
+            answer: "Kolordu",
+            category: "Askeri",
+            difficulty: "hard"
+          }
+        ];
+      }
+
+      // Initialize multiplayer system
+      function initMultiplayer() {
+        
+        // Setup event listeners
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const refreshRoomsBtn = document.getElementById('refreshRoomsBtn');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const backToNormalBtn = document.getElementById('backToNormalBtn');
+        const demoModeBtn = document.getElementById('demoModeBtn');
+        const leaveGameRoomBtn = document.getElementById('leaveGameRoomBtn');
+        const deleteRoomBtn = document.getElementById('deleteRoomBtn');
+        
+        if (createRoomBtn) createRoomBtn.onclick = createMultiplayerRoom;
+        if (joinRoomBtn) joinRoomBtn.onclick = showJoinRoomInput;
+        if (refreshRoomsBtn) refreshRoomsBtn.onclick = loadAvailableRooms;
+        if (startGameBtn) startGameBtn.onclick = startMultiplayerGame;
+        if (backToNormalBtn) backToNormalBtn.onclick = exitMultiplayerMode;
+        if (demoModeBtn) demoModeBtn.onclick = startDemoMode;
+        if (leaveGameRoomBtn) leaveGameRoomBtn.onclick = leaveMultiplayerRoom;
+        if (deleteRoomBtn) deleteRoomBtn.onclick = deleteMultiplayerRoom;
+        
+        // Game controls
+        const startTimerBtn = document.getElementById('startTimerBtn');
+        const prevQuestionBtn = document.getElementById('prevQuestionBtn');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const restartQuizBtn = document.getElementById('restartQuizBtn');
+        const sendMultiplayerChatBtn = document.getElementById('sendMultiplayerChatBtn');
+        const multiplayerChatInput = document.getElementById('multiplayerChatInput');
+        
+        if (startTimerBtn) startTimerBtn.onclick = startGameTimer;
+        if (prevQuestionBtn) prevQuestionBtn.onclick = prevGameQuestion;
+        if (nextQuestionBtn) nextQuestionBtn.onclick = nextGameQuestion;
+        if (restartQuizBtn) restartQuizBtn.onclick = restartMultiplayerQuiz;
+        if (sendMultiplayerChatBtn) sendMultiplayerChatBtn.onclick = sendMultiplayerChatMessage;
+        
+        if (multiplayerChatInput) {
+          multiplayerChatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              sendMultiplayerChatMessage();
+            }
+          });
+        }
+
+        // Load available rooms
+        loadAvailableRooms();
+      }
+
+      // Show multiplayer panel
+      // Toast notification function for multiplayer
+      function showToast(message, type = "info") {
+        const toast = document.getElementById('toast');
+        if (toast) {
+          toast.textContent = message;
+          toast.className = `toast ${type} show`;
+          // Auto-hide after 1 second for answer notifications
+          const hideDelay = message.includes('cevapladı') ? 1000 : 4000;
+          setTimeout(() => {
+            toast.classList.remove("show");
+          }, hideDelay);
+        } else {
+          // Fallback if toast element not found
+        }
+      }
+
+      function showMultiplayerPanel() {
+        const panel = document.getElementById('multiplayerPanel');
+        const quizContent = document.querySelector('.card');
+        
+        if (panel) {
+          panel.style.display = 'block';
+          isMultiplayerMode = true;
+        }
+        
+        if (quizContent) {
+          quizContent.style.display = 'none';
+        }
+        
+        initMultiplayer();
+        loadAvailableRooms();
+      }
+
+      // Generate room code
+      function generateRoomCode() {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
+      }
+
+      // Format time
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      // Create multiplayer room
+      async function createMultiplayerRoom() {
+        const roomName = document.getElementById('roomName')?.value?.trim();
+        const playerName = document.getElementById('playerName')?.value?.trim();
+        const roomPassword = document.getElementById('roomPassword')?.value?.trim();
+
+        if (!roomName || !playerName || playerName.length < 2) {
+          showToast('❌ Oda adı ve oyuncu adı gerekli (en az 2 karakter)!', 'error');
+          return;
+        }
+
+        const roomCode = generateRoomCode();
+        currentUser = playerName;
+        isHost = true;
+
+        try {
+          const multiplayerQuestions = getMultiplayerQuestions();
+          await db.collection('rooms').doc(roomCode).set({
+            name: roomName,
+            password: roomPassword || null, // null if no password
+            currentQuestion: 0,
+            timer: 0,
+            timerRunning: false,
+            participants: [currentUser],
+            host: currentUser,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            questions: multiplayerQuestions
+          });
+
+          currentRoomId = roomCode;
+          showMultiplayerGameScreen();
+          listenToMultiplayerRoom();
+          addMultiplayerChatMessage('Sistem', `${currentUser} odayı oluşturdu`);
+          
+          if (typeof showToast !== 'undefined') {
+            showToast(`✅ Oda "${roomName}" oluşturuldu! Kod: ${roomCode}`, 'success');
+          } else {
+            alert(`✅ Oda "${roomName}" oluşturuldu! Kod: ${roomCode}`);
+          }
+        } catch (error) {
+          console.error('Room creation error:', error);
+          if (error.code === 'permission-denied') {
+            if (typeof showToast !== 'undefined') {
+              showToast('⚠️ Firebase Rules güncellemesi gerekli! Odalar listesindeki talimatları takip edin.', 'error');
+            } else {
+              alert('⚠️ Firebase Rules güncellemesi gerekli!');
+            }
+          } else {
+            if (typeof showToast !== 'undefined') {
+              showToast('❌ Oda oluşturulamadı: ' + error.message, 'error');
+            } else {
+              alert('❌ Oda oluşturulamadı: ' + error.message);
+            }
+          }
+        }
+      }
+
+      // Show join room input
+      function showJoinRoomInput() {
+        const roomCodeInput = prompt('Odaya katılmak için oda kodunu girin:');
+        if (roomCodeInput) {
+          joinMultiplayerRoom(roomCodeInput.trim().toUpperCase());
+        }
+      }
+
+      // Join multiplayer room
+      async function joinMultiplayerRoom(roomCode) {
+        const playerName = document.getElementById('playerName')?.value?.trim();
+        
+        if (!playerName || playerName.length < 2) {
+          if (typeof showToast !== 'undefined') {
+            showToast('❌ Geçerli bir oyuncu adı girin!', 'error');
+          } else {
+            alert('❌ Geçerli bir oyuncu adı girin!');
+          }
+          return;
+        }
+
+        if (!roomCode || roomCode.length !== 6) {
+          if (typeof showToast !== 'undefined') {
+            showToast('❌ Oda kodu 6 karakter olmalıdır!', 'error');
+          } else {
+            alert('❌ Oda kodu 6 karakter olmalıdır!');
+          }
+          return;
+        }
+
+        currentUser = playerName;
+
+        try {
+          const roomDoc = await db.collection('rooms').doc(roomCode).get();
+          
+          if (!roomDoc.exists) {
+            if (typeof showToast !== 'undefined') {
+              showToast('❌ Oda bulunamadı!', 'error');
+            } else {
+              alert('❌ Oda bulunamadı!');
+            }
+            return;
+          }
+
+          const roomData = roomDoc.data();
+          
+          // Check if room has password
+          if (roomData.password) {
+            const enteredPassword = prompt('🔐 Bu oda şifre korumalıdır. Şifreyi girin:');
+            if (!enteredPassword || enteredPassword !== roomData.password) {
+              showToast('❌ Yanlış şifre!', 'error');
+              return;
+            }
+          }
+          
+          if (roomData.participants.includes(currentUser)) {
+            showToast('❌ Bu kullanıcı adı zaten odada mevcut!', 'error');
+            return;
+          }
+
+          if (roomData.participants.length >= 8) {
+            if (typeof showToast !== 'undefined') {
+              showToast('❌ Oda dolu! Maksimum 8 oyuncu desteklenir.', 'error');
+            } else {
+              alert('❌ Oda dolu!');
+            }
+            return;
+          }
+
+          await db.collection('rooms').doc(roomCode).update({
+            participants: firebase.firestore.FieldValue.arrayUnion(currentUser)
+          });
+
+          currentRoomId = roomCode;
+          isHost = false;
+          showMultiplayerGameScreen();
+          listenToMultiplayerRoom();
+          addMultiplayerChatMessage('Sistem', `${currentUser} odaya katıldı`);
+          
+          if (typeof showToast !== 'undefined') {
+            showToast(`✅ "${roomData.name}" odasına katıldınız!`, 'success');
+          } else {
+            alert(`✅ Odaya katıldınız!`);
+          }
+        } catch (error) {
+          console.error('Join room error:', error);
+          if (error.code === 'permission-denied') {
+            if (typeof showToast !== 'undefined') {
+              showToast('⚠️ Firebase Rules güncellemesi gerekli! Odalar listesindeki talimatları takip edin.', 'error');
+            } else {
+              alert('⚠️ Firebase Rules güncellemesi gerekli!');
+            }
+          } else {
+            if (typeof showToast !== 'undefined') {
+              showToast('❌ Odaya katılınamadı: ' + error.message, 'error');
+            } else {
+              alert('❌ Odaya katılınamadı!');
+            }
+          }
+        }
+      }
+
+      // Show multiplayer game screen
+      function showMultiplayerGameScreen() {
+        const roomSetup = document.getElementById('roomSetup');
+        const availableRooms = document.getElementById('availableRooms');
+        const gameRoom = document.getElementById('gameRoom');
+        const quizArea = document.getElementById('multiplayerQuizArea');
+        
+        if (roomSetup) roomSetup.style.display = 'none';
+        if (availableRooms) availableRooms.style.display = 'none';
+        if (gameRoom) gameRoom.style.display = 'none';
+        if (quizArea) quizArea.classList.add('active');
+        
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const hostOnlyRoomCode = document.getElementById('hostOnlyRoomCode');
+        const roomNameDisplay = document.getElementById('roomNameDisplay');
+        
+        if (roomCodeDisplay) {
+          roomCodeDisplay.textContent = currentRoomId;
+        }
+        
+        if (roomNameDisplay && currentRoom) {
+          roomNameDisplay.textContent = currentRoom.name || 'Multiplayer Quiz';
+        }
+        
+        // Show room code only to host
+        if (hostOnlyRoomCode) {
+          hostOnlyRoomCode.style.display = isHost ? 'block' : 'none';
+        }
+        
+        // Show host controls
+        if (isHost) {
+          const startTimerBtn = document.getElementById('startTimerBtn');
+          const prevQuestionBtn = document.getElementById('prevQuestionBtn');
+          const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+          const restartQuizBtn = document.getElementById('restartQuizBtn');
+          const deleteRoomBtn = document.getElementById('deleteRoomBtn');
+          
+          if (startTimerBtn) startTimerBtn.style.display = 'inline-block';
+          if (prevQuestionBtn) prevQuestionBtn.style.display = 'inline-block';
+          if (nextQuestionBtn) nextQuestionBtn.style.display = 'inline-block';
+          if (restartQuizBtn) restartQuizBtn.style.display = 'inline-block';
+          if (deleteRoomBtn) deleteRoomBtn.style.display = 'inline-block';
+        }
+      }
+
+      // Listen to multiplayer room
+      function listenToMultiplayerRoom() {
+        if (!currentRoomId) return;
+        
+        unsubscribeRoom = db.collection('rooms').doc(currentRoomId)
+          .onSnapshot((doc) => {
+            if (!doc.exists) {
+              if (typeof showToast !== 'undefined') {
+                showToast('❌ Oda kapatıldı!', 'error');
+              } else {
+                alert('❌ Oda kapatıldı!');
+              }
+              exitMultiplayerMode();
+              return;
+            }
+
+            currentRoom = doc.data();
+            updateMultiplayerGameUI();
+          });
+
+        // Chat listener
+        unsubscribeChat = db.collection('rooms').doc(currentRoomId)
+          .collection('chat')
+          .orderBy('createdAt', 'asc')
+          .onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const message = change.doc.data();
+                displayMultiplayerChatMessage(message.user, message.text);
+              }
+            });
+          });
+          
+        // Notifications listener
+        try {
+          unsubscribeNotifications = db.collection('rooms').doc(currentRoomId)
+            .collection('notifications')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .onSnapshot((snapshot) => {
+              snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                  const notification = change.doc.data();
+                  // Only show notifications from other users
+                  if (notification.user !== currentUser) {
+                    showToast(notification.message, 'info');
+                  }
+                }
+              });
+            }, (error) => {
+              console.error('Notifications listener error:', error);
+              // Disable notifications listener if permission denied
+              unsubscribeNotifications = null;
+            });
+        } catch (error) {
+          console.error('Failed to setup notifications listener:', error);
+          unsubscribeNotifications = null;
+        }
+      }
+
+      // Update multiplayer game UI
+      function updateMultiplayerGameUI() {
+        if (!currentRoom) return;
+
+        // Update participants
+        const participantsList = document.getElementById('participantsList');
+        if (participantsList) {
+          participantsList.innerHTML = '';
+          currentRoom.participants.forEach(participant => {
+            const span = document.createElement('span');
+            span.className = 'participant';
+            span.textContent = participant;
+            if (participant === currentRoom.host) {
+              span.textContent += ' 👑';
+            }
+            participantsList.appendChild(span);
+          });
+        }
+
+        // Update timer
+        const timerDisplay = document.getElementById('timerDisplay');
+        if (timerDisplay) {
+          timerDisplay.textContent = `⏱️ ${formatTime(currentRoom.timer || 0)}`;
+        }
+
+        // Update progress bar
+        const totalQuestions = currentRoom.questions?.length || 0;
+        const currentQ = currentRoom.currentQuestion || 0;
+        const progress = totalQuestions > 0 ? (currentQ / totalQuestions) * 100 : 0;
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) {
+          progressBar.style.width = progress + '%';
+        }
+
+        // Display question
+        if (currentRoom.questions && currentRoom.questions[currentRoom.currentQuestion]) {
+          displayMultiplayerQuestion(currentRoom.questions[currentRoom.currentQuestion], currentRoom.currentQuestion);
+        } else {
+          // Quiz completed - show results
+          displayMultiplayerQuizResults();
+        }
+
+        // Update score
+        const userScore = calculateMultiplayerUserScore();
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        if (scoreDisplay) scoreDisplay.textContent = `Skor: ${userScore}`;
+      }
+
+      // Display multiplayer question
+      function displayMultiplayerQuestion(question, questionIndex) {
+        const multiplayerQuestion = document.getElementById('multiplayerQuestion');
+        const multiplayerChoices = document.getElementById('multiplayerChoices');
+        
+        if (multiplayerQuestion) {
+          multiplayerQuestion.textContent = `${questionIndex + 1}. ${question.q}`;
+        }
+        
+        if (multiplayerChoices) {
+          multiplayerChoices.innerHTML = '';
+
+          question.options.forEach((option, index) => {
+            const choiceDiv = document.createElement('div');
+            choiceDiv.className = 'choice';
+            
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = String.fromCharCode(65 + index); // A, B, C, D
+            
+            const text = document.createElement('span');
+            text.textContent = option;
+
+            choiceDiv.appendChild(badge);
+            choiceDiv.appendChild(text);
+
+            // Answer checking
+            const userAnswer = multiplayerUserAnswers[questionIndex];
+            if (userAnswer) {
+              if (option === userAnswer.answer) {
+                choiceDiv.classList.add(option === question.answer ? 'correct' : 'wrong');
+              } else if (option === question.answer) {
+                choiceDiv.classList.add('correct');
+              }
+            } else {
+              choiceDiv.onclick = () => answerMultiplayerQuestion(questionIndex, option);
+            }
+
+            multiplayerChoices.appendChild(choiceDiv);
+          });
+        }
+      }
+
+      // Answer multiplayer question
+      async function answerMultiplayerQuestion(questionIndex, selectedAnswer) {
+        if (multiplayerUserAnswers[questionIndex]) return; // Already answered
+
+        multiplayerUserAnswers[questionIndex] = { answer: selectedAnswer };
+
+        try {
+          await db.collection('rooms').doc(currentRoomId)
+            .collection('answers').doc(currentUser).set({
+              [questionIndex]: {
+                answer: selectedAnswer,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                user: currentUser
+              }
+            }, { merge: true });
+
+          // Send notification to all players in the room
+          await broadcastAnswerNotification(questionIndex);
+          
+          updateMultiplayerGameUI();
+          showMultiplayerAnswerFeedback(questionIndex, selectedAnswer);
+          
+        } catch (error) {
+          console.error('Answer submit error:', error);
+        }
+      }
+
+      // Broadcast answer notification to all players
+      async function broadcastAnswerNotification(questionIndex) {
+        try {
+          // Check if we're in demo mode or Firebase mode
+          if (!currentRoomId || currentRoom?.isDemoMode) {
+            // Demo mode - show local toast
+            showToast(`🎯 ${currentUser} ${questionIndex + 1}. soruyu işaretledi`, 'info');
+            return;
+          }
+          
+          // Send notification to Firebase
+          await db.collection('rooms').doc(currentRoomId)
+            .collection('notifications').add({
+              type: 'answer_selected',
+              user: currentUser,
+              questionIndex: questionIndex + 1,
+              message: `🎯 ${currentUser} ${questionIndex + 1}. soruyu işaretledi`,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+              createdAt: Date.now()
+            });
+        } catch (error) {
+          console.error('Notification broadcast error:', error);
+          // Fallback to local toast for all users
+          showToast(`🎯 ${currentUser} ${questionIndex + 1}. soruyu işaretledi`, 'info');
+        }
+      }
+
+      // Show answer feedback
+      function showMultiplayerAnswerFeedback(questionIndex, selectedAnswer) {
+        if (!currentRoom?.questions) return;
+        
+        const question = currentRoom.questions[questionIndex];
+        const isCorrect = selectedAnswer === question.answer;
+        
+        // Update choices
+        const multiplayerChoices = document.getElementById('multiplayerChoices');
+        const choices = multiplayerChoices?.querySelectorAll('.choice');
+        choices?.forEach((choice, index) => {
+          const optionText = question.options[index];
+          choice.style.pointerEvents = 'none';
+          
+          if (optionText === selectedAnswer) {
+            choice.classList.add(isCorrect ? 'correct' : 'wrong');
+          } else if (optionText === question.answer) {
+            choice.classList.add('correct');
+          }
+        });
+        
+        // Show feedback
+        const feedback = isCorrect ? '✅ Doğru!' : '❌ Yanlış!';
+        if (typeof showToast !== 'undefined') {
+          showToast(feedback, isCorrect ? 'success' : 'error');
+        }
+      }
+
+      // Calculate user score
+      function calculateMultiplayerUserScore() {
+        if (!currentRoom?.questions) return 0;
+        
+        let score = 0;
+        currentRoom.questions.forEach((question, index) => {
+          if (multiplayerUserAnswers[index]?.answer === question.answer) {
+            score++;
+          }
+        });
+        return score;
+      }
+
+      // Display quiz results with all participants' scores
+      function displayMultiplayerQuizResults() {
+        const multiplayerQuestion = document.getElementById('multiplayerQuestion');
+        const multiplayerChoices = document.getElementById('multiplayerChoices');
+        
+        if (multiplayerQuestion) {
+          multiplayerQuestion.textContent = '🎯 Quiz Tamamlandı!';
+        }
+        
+        if (multiplayerChoices) {
+          multiplayerChoices.innerHTML = '';
+          
+          // Create results container
+          const resultsContainer = document.createElement('div');
+          resultsContainer.className = 'quiz-results';
+          resultsContainer.style.cssText = `
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+          `;
+          
+          // Add title
+          const title = document.createElement('h3');
+          title.textContent = '📊 Final Skorlar';
+          title.style.cssText = `
+            margin: 0 0 15px 0;
+            color: #1e293b;
+            font-size: 18px;
+            text-align: center;
+          `;
+          resultsContainer.appendChild(title);
+          
+          // Calculate and display scores for all participants
+          const totalQuestions = currentRoom.questions?.length || 0;
+          const scoresList = document.createElement('div');
+          scoresList.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+          
+          // For each participant, calculate their score
+          currentRoom.participants.forEach((participant, index) => {
+            const scoreItem = document.createElement('div');
+            scoreItem.style.cssText = `
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: white;
+              padding: 12px 16px;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            `;
+            
+            const participantName = document.createElement('span');
+            participantName.textContent = participant;
+            if (participant === currentRoom.host) {
+              participantName.textContent += ' 👑';
+            }
+            participantName.style.cssText = 'font-weight: 500; color: #1e293b;';
+            
+            // For demo purposes, simulate scores for other participants
+            let participantScore;
+            if (participant === currentUser) {
+              participantScore = calculateMultiplayerUserScore();
+            } else {
+              // Generate demo scores for other participants (in real app, this would come from database)
+              participantScore = Math.floor(Math.random() * (totalQuestions + 1));
+            }
+            
+            const scoreSpan = document.createElement('span');
+            scoreSpan.textContent = `${participantScore}/${totalQuestions}`;
+            scoreSpan.style.cssText = `
+              background: ${participantScore === totalQuestions ? '#10b981' : participantScore >= totalQuestions * 0.7 ? '#3b82f6' : '#6b7280'};
+              color: white;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-weight: 600;
+              font-size: 14px;
+            `;
+            
+            scoreItem.appendChild(participantName);
+            scoreItem.appendChild(scoreSpan);
+            scoresList.appendChild(scoreItem);
+          });
+          
+          resultsContainer.appendChild(scoresList);
+          
+          // Add restart button for host/admin
+          if (currentUser === currentRoom.host || currentUser.includes('Admin') || currentUser.includes('admin')) {
+            const restartButton = document.createElement('button');
+            restartButton.textContent = '🔄 Yeniden Başlat';
+            restartButton.style.cssText = `
+              width: 100%;
+              background: #2563eb;
+              color: white;
+              border: none;
+              padding: 12px 20px;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              margin-top: 15px;
+              transition: background-color 0.2s;
+            `;
+            
+            restartButton.addEventListener('mouseenter', () => {
+              restartButton.style.backgroundColor = '#1d4ed8';
+            });
+            
+            restartButton.addEventListener('mouseleave', () => {
+              restartButton.style.backgroundColor = '#2563eb';
+            });
+            
+            restartButton.addEventListener('click', restartMultiplayerQuiz);
+            
+            resultsContainer.appendChild(restartButton);
+          }
+          
+          multiplayerChoices.appendChild(resultsContainer);
+        }
+      }
+
+
+      // Chat functions
+      async function sendMultiplayerChatMessage() {
+        const multiplayerChatInput = document.getElementById('multiplayerChatInput');
+        const message = multiplayerChatInput?.value?.trim();
+        
+        if (!message || message.length > 200) return;
+
+        const now = Date.now();
+        if (window.lastMultiplayerMessageTime && now - window.lastMultiplayerMessageTime < 2000) {
+          return;
+        }
+        window.lastMultiplayerMessageTime = now;
+
+        try {
+          await addMultiplayerChatMessage(currentUser, message);
+          multiplayerChatInput.value = '';
+        } catch (error) {
+          console.error('Chat message error:', error);
+        }
+      }
+
+      async function addMultiplayerChatMessage(user, text) {
+        if (!currentRoomId) return;
+        
+        try {
+          await db.collection('rooms').doc(currentRoomId)
+            .collection('chat').add({
+              user: user,
+              text: text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+          console.error('Chat message add error:', error);
+          throw error;
+        }
+      }
+
+      function displayMultiplayerChatMessage(user, text) {
+        const multiplayerChatMessages = document.getElementById('multiplayerChatMessages');
+        if (!multiplayerChatMessages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        
+        const now = new Date();
+        const timestamp = now.getHours().toString().padStart(2, '0') + ':' + 
+                        now.getMinutes().toString().padStart(2, '0');
+        
+        if (user === 'Sistem') {
+          messageDiv.style.cssText = 'background: #f3f4f6; color: #6b7280; font-style: italic; text-align: center; border-radius: 20px; margin: 5px 0; padding: 6px 12px; font-size: 0.9em;';
+          messageDiv.textContent = `🔔 ${text}`;
+        } else {
+          const userSpan = document.createElement('span');
+          userSpan.className = 'message-user';
+          
+          if (user === currentUser) {
+            messageDiv.style.cssText = 'background: var(--primary); color: white; margin-left: 20px; border-radius: 18px 4px 18px 18px;';
+            userSpan.textContent = 'Sen: ';
+          } else {
+            messageDiv.style.cssText = 'background: var(--card); border: 1px solid var(--line); margin-right: 20px; border-radius: 4px 18px 18px 18px;';
+            userSpan.textContent = user + ': ';
+          }
+          
+          const textSpan = document.createElement('span');
+          textSpan.textContent = text;
+          
+          const timeSpan = document.createElement('span');
+          timeSpan.style.cssText = 'font-size: 0.7em; opacity: 0.7; margin-left: 8px;';
+          timeSpan.textContent = timestamp;
+
+          messageDiv.appendChild(userSpan);
+          messageDiv.appendChild(textSpan);
+          messageDiv.appendChild(timeSpan);
+        }
+
+        multiplayerChatMessages.appendChild(messageDiv);
+        multiplayerChatMessages.scrollTop = multiplayerChatMessages.scrollHeight;
+        
+        const messages = multiplayerChatMessages.querySelectorAll('.message');
+        if (messages.length > 50) {
+          messages[0].remove();
+        }
+      }
+
+      // Game control functions
+      async function startGameTimer() {
+        if (!isHost) return;
+        try {
+          await db.collection('rooms').doc(currentRoomId).update({
+            timerRunning: !currentRoom.timerRunning
+          });
+        } catch (error) {
+          console.error('Timer start error:', error);
+        }
+      }
+
+      async function prevGameQuestion() {
+        if (!isHost) return;
+        const prevQ = Math.max(0, (currentRoom.currentQuestion || 0) - 1);
+        if (currentRoom.currentQuestion <= 0) {
+          showToast('❌ Zaten ilk soruda!', 'warning');
+          return;
+        }
+        try {
+          await db.collection('rooms').doc(currentRoomId).update({
+            currentQuestion: prevQ,
+            timer: 0,
+            timerRunning: false
+          });
+          addMultiplayerChatMessage('Sistem', 'Önceki soru!');
+        } catch (error) {
+          console.error('Previous question error:', error);
+          // Demo mode fallback
+          if (currentRoom) {
+            currentRoom.currentQuestion = prevQ;
+            updateMultiplayerGameUI();
+            showToast('📝 Önceki soruya geçildi!', 'info');
+          }
+        }
+      }
+
+      async function nextGameQuestion() {
+        if (!isHost) return;
+        const nextQ = (currentRoom.currentQuestion || 0) + 1;
+        try {
+          await db.collection('rooms').doc(currentRoomId).update({
+            currentQuestion: nextQ,
+            timer: 0,
+            timerRunning: false
+          });
+          addMultiplayerChatMessage('Sistem', 'Sonraki soru!');
+        } catch (error) {
+          console.error('Next question error:', error);
+          // Demo mode fallback
+          if (currentRoom) {
+            currentRoom.currentQuestion = nextQ;
+            updateMultiplayerGameUI();
+            showToast('📝 Sonraki soruya geçildi!', 'info');
+          }
+        }
+      }
+
+      async function restartMultiplayerQuiz() {
+        // Check if user is host/admin
+        if (!isHost && (!currentRoom || currentUser !== currentRoom.host)) {
+          if (typeof showToast !== 'undefined') {
+            showToast('❌ Sadece oda sahibi quizi yeniden başlatabilir!', 'error');
+          }
+          return;
+        }
+        
+        try {
+          // For Firebase mode
+          if (currentRoomId && !currentRoom.isDemoMode) {
+            await db.collection('rooms').doc(currentRoomId).update({
+              currentQuestion: 0,
+              timer: 0,
+              timerRunning: false
+            });
+            const answersCollection = db.collection('rooms').doc(currentRoomId).collection('answers');
+            const snapshot = await answersCollection.get();
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            multiplayerUserAnswers = {};
+            addMultiplayerChatMessage('Sistem', 'Quiz sıfırlandı!');
+          } else {
+            // For demo mode
+            multiplayerUserAnswers = {};
+            
+            // Reset room data
+            if (currentRoom) {
+              currentRoom.currentQuestion = 0;
+              currentRoom.timer = 0;
+              currentRoom.timerRunning = false;
+            }
+            
+            // Show toast notification
+            if (typeof showToast !== 'undefined') {
+              showToast('🔄 Quiz yeniden başlatıldı!', 'success');
+            }
+            
+            // Update the UI
+            updateMultiplayerGameUI();
+          }
+        } catch (error) {
+          console.error('Quiz restart error:', error);
+          
+          // Fallback to demo mode restart
+          multiplayerUserAnswers = {};
+          if (currentRoom) {
+            currentRoom.currentQuestion = 0;
+            currentRoom.timer = 0;
+            currentRoom.timerRunning = false;
+          }
+          
+          if (typeof showToast !== 'undefined') {
+            showToast('🔄 Quiz yeniden başlatıldı! (Demo modu)', 'success');
+          }
+          
+          updateMultiplayerGameUI();
+        }
+      }
+
+      async function deleteMultiplayerRoom() {
+        if (!isHost || !confirm('Odayı silmek istediğinizden emin misiniz?')) return;
+        try {
+          if (currentRoomId) {
+            const chatSnapshot = await db.collection('rooms').doc(currentRoomId).collection('chat').get();
+            const answersSnapshot = await db.collection('rooms').doc(currentRoomId).collection('answers').get();
+            const batch = db.batch();
+            chatSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            answersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            batch.delete(db.collection('rooms').doc(currentRoomId));
+            await batch.commit();
+            setTimeout(() => exitMultiplayerMode(), 500);
+          }
+        } catch (error) {
+          console.error('Room delete error:', error);
+        }
+      }
+
+      async function leaveMultiplayerRoom() {
+        try {
+          if (currentRoomId && currentUser) {
+            await db.collection('rooms').doc(currentRoomId).update({
+              participants: firebase.firestore.FieldValue.arrayRemove(currentUser)
+            });
+            addMultiplayerChatMessage('Sistem', `${currentUser} odadan çıktı`);
+          }
+          exitMultiplayerMode();
+        } catch (error) {
+          exitMultiplayerMode();
+        }
+      }
+
+      function exitMultiplayerMode() {
+        cleanupMultiplayer();
+        hideMultiplayerPanel();
+        const modeSelect = document.getElementById('mode');
+        if (modeSelect) modeSelect.value = 'normal';
+      }
+
+      function hideMultiplayerPanel() {
+        const panel = document.getElementById('multiplayerPanel');
+        const quizContent = document.querySelector('.card');
+        const quizArea = document.getElementById('multiplayerQuizArea');
+        
+        if (panel) panel.style.display = 'none';
+        if (quizContent) quizContent.style.display = 'block';
+        if (quizArea) quizArea.classList.remove('active');
+        
+        isMultiplayerMode = false;
+        cleanupMultiplayer();
+      }
+
+      async function loadAvailableRooms() {
+        const roomsList = document.getElementById('roomsList');
+        if (!roomsList) return;
+        
+        try {
+          const roomsSnapshot = await db.collection('rooms').limit(10).get();
+          if (roomsSnapshot.empty) {
+            showDemoRooms();
+            return;
+          }
+          let html = '';
+          roomsSnapshot.forEach((doc) => {
+            const room = doc.data();
+            const playerCount = room.participants ? room.participants.length : 0;
+            html += `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid var(--line); cursor: pointer;" onclick="quickJoinRoom('${doc.id}')">
+                <div>
+                  <strong>${room.name || 'Isimsiz Oda'}</strong>
+                  <div class="font-size-0-8em color-muted">Host: ${room.host || 'Bilinmiyor'}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.7em; padding: 2px 6px; background: var(--primary); color: white; border-radius: 12px;">👥 ${playerCount}/8</span>
+                  <span style="font-size: 0.7em; padding: 2px 6px; background: var(--muted); color: white; border-radius: 12px;">🔑 ${doc.id}</span>
+                </div>
+              </div>
+            `;
+          });
+          roomsList.innerHTML = html;
+        } catch (error) {
+          console.error('Load rooms error:', error);
+          showDemoRooms();
+          
+          // Show demo mode button when Firebase fails
+          const demoModeBtn = document.getElementById('demoModeBtn');
+          if (demoModeBtn && error.code === 'permission-denied') {
+            demoModeBtn.style.display = 'inline-block';
+          }
+        }
+      }
+
+      // Show demo rooms when Firestore access fails
+      function showDemoRooms() {
+        const roomsList = document.getElementById('roomsList');
+        if (!roomsList) return;
+
+        roomsList.innerHTML = `
+          <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+            <p style="color: #92400e; font-size: 0.9em; margin: 0 0 8px 0;">
+              <strong>⚠️ Firebase Rules Güncelleme Gerekli</strong><br>
+              Multiplayer özelliği için Firestore güvenlik kurallarını güncellemeniz gerekiyor.
+            </p>
+            <details style="margin: 8px 0;">
+              <summary style="cursor: pointer; font-weight: bold; color: #92400e;">📋 Gerekli Rules</summary>
+              <pre style="background: white; padding: 10px; border-radius: 4px; margin: 8px 0; font-size: 11px; overflow-x: auto;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null;
+      
+      match /chat/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+      
+      match /answers/{userId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+            </details>
+          </div>
+          <div class="dashed-border-center">
+            <p style="color: var(--muted); margin: 0 0 8px 0;">🏗️ Demo Odaları</p>
+            <div style="margin-top: 8px;">
+              <div class="complex-card-item" onclick="showFirebaseRulesInfo()">
+                <div>
+                  <strong>Quiz Odası #1</strong>
+                  <div class="font-size-0-8em color-muted">Host: Demo User</div>
+                </div>
+                <div class="flex-center-gap-4px">
+                  <span class="font-size-0-7em padding-2px-4px background-primary-white">👥 2/4</span>
+                  <span class="font-size-0-7em padding-2px-4px background-muted-white">🔑 DEMO1</span>
+                </div>
+              </div>
+              <div class="complex-card-item" onclick="showFirebaseRulesInfo()">
+                <div>
+                  <strong>Hızlı Quiz</strong>
+                  <div class="font-size-0-8em color-muted">Host: Test Host</div>
+                </div>
+                <div class="flex-center-gap-4px">
+                  <span class="font-size-0-7em padding-2px-4px background-primary-white">👥 1/6</span>
+                  <span class="font-size-0-7em padding-2px-4px background-muted-white">🔑 DEMO2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Show Firebase Rules information
+      function showFirebaseRulesInfo() {
+        if (typeof showToast !== 'undefined') {
+          showToast('🔧 Firebase Rules güncellemesi gerekli! Yukarıdaki kuralları Firebase Console\'da ayarlayın.', 'info');
+        } else {
+          alert('Firebase Rules güncellemesi gerekli!\n\nFirebase Console > Firestore Database > Rules bölümüne gidin ve gerekli kuralları ekleyin.');
+        }
+      }
+
+      // Start demo mode
+      function startDemoMode() {
+        if (typeof showToast !== 'undefined') {
+          showToast('🧪 Demo modu başlatıldı! Çevrimdışı multiplayer deneyimi.', 'info');
+        }
+        
+        // Simulate offline multiplayer
+        currentUser = 'Demo Kullanıcı';
+        currentRoomId = 'DEMO123';
+        isHost = true;
+        currentRoom = {
+          name: 'Demo Odası',
+          participants: ['Demo Kullanıcı', 'Bot Oyuncu'],
+          host: 'Demo Kullanıcı',
+          questions: getMultiplayerQuestions(),
+          currentQuestion: 0,
+          timer: 0,
+          timerRunning: false
+        };
+        
+        showMultiplayerGameScreen();
+        updateMultiplayerGameUI();
+        
+        // Add some demo chat messages
+        setTimeout(() => {
+          displayMultiplayerChatMessage('Sistem', 'Demo modu başlatıldı');
+          displayMultiplayerChatMessage('Bot Oyuncu', 'Merhaba! Ben demo bot oyuncusuyum.');
+          displayMultiplayerChatMessage('Sistem', 'Firebase Rules güncellendiğinde gerçek multiplayer kullanabilirsiniz.');
+        }, 500);
+      }
+
+      function quickJoinRoom(roomId) {
+        const playerName = document.getElementById('playerName')?.value?.trim();
+        if (!playerName || playerName.length < 2) {
+          const newPlayerName = prompt('Oyuncu adınızı girin:');
+          if (newPlayerName && newPlayerName.length >= 2) {
+            const playerNameInput = document.getElementById('playerName');
+            if (playerNameInput) playerNameInput.value = newPlayerName;
+            joinMultiplayerRoom(roomId);
+          }
+        } else {
+          joinMultiplayerRoom(roomId);
+        }
+      }
+
+      function cleanupMultiplayer() {
+        if (unsubscribeRoom) { unsubscribeRoom(); unsubscribeRoom = null; }
+        if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
+        if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
+        if (multiplayerTimerInterval) { clearInterval(multiplayerTimerInterval); multiplayerTimerInterval = null; }
+        
+        currentRoom = null; currentUser = null; currentRoomId = null;
+        isHost = false; multiplayerUserAnswers = {}; isMultiplayerMode = false;
+        
+        const roomSetup = document.getElementById('roomSetup');
+        const availableRooms = document.getElementById('availableRooms');
+        const gameRoom = document.getElementById('gameRoom');
+        if (roomSetup) roomSetup.style.display = 'block';
+        if (availableRooms) availableRooms.style.display = 'block';
+        if (gameRoom) gameRoom.style.display = 'block';
+        
+        ['roomName', 'playerName'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        
+        const multiplayerChatMessages = document.getElementById('multiplayerChatMessages');
+        if (multiplayerChatMessages) multiplayerChatMessages.innerHTML = '';
+        
+        ['startTimerBtn', 'prevQuestionBtn', 'nextQuestionBtn', 'restartQuizBtn', 'deleteRoomBtn'].forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) btn.style.display = 'none';
+        });
+      }
+
+      async function startMultiplayerGame() {
+        if (!currentRoomId) return;
+        const roomDoc = await db.collection('rooms').doc(currentRoomId).get();
+        if (roomDoc.exists && roomDoc.data().host === currentUser) {
+          showMultiplayerGameScreen();
+        }
+      }
+
+      // Timer sync (for host)
+      setInterval(() => {
+        if (currentRoom?.timerRunning && isHost && currentRoomId) {
+          db.collection('rooms').doc(currentRoomId).update({
+            timer: firebase.firestore.FieldValue.increment(1)
+          }).catch(() => {});
+        }
+      }, 1000);
+
+    </script>
+    
+    <!-- JSON Management Modals -->
+    <!-- JSON Kütüphane Modal -->
+    <div id="jsonLibraryModal" class="json-modal" class="display-none">
+      <div class="json-modal-content">
+        <div class="json-modal-header">
+          <h3 class="margin-0 color-text">📚 JSON Kütüphanem</h3>
+          <button id="closeLibraryModal" class="btn ghost" class="padding-4px-8px font-size-16px">❌</button>
+        </div>
+        <div class="json-modal-body">
+          <div id="jsonLibraryList" style="max-height: 300px; overflow-y: auto;">
+            <!-- JSON öğeleri buraya eklenecek -->
+          </div>
+          <div style="margin-top: 16px; text-align: center;">
+            <button id="addNewJsonBtn" class="btn" style="width: 100%;">➕ Yeni JSON Ekle</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON Birleştirme Modal -->
+    <div id="mergeJsonModal" class="json-modal" class="display-none">
+      <div class="json-modal-content">
+        <div class="json-modal-header">
+          <h3 class="margin-0 color-text">🔄 JSON Birleştirme</h3>
+          <button id="closeMergeModal" class="btn ghost" class="padding-4px-8px font-size-16px">❌</button>
+        </div>
+        <div class="json-modal-body">
+          <div id="mergePreview" style="background: var(--opt-bg); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">📊 Birleştirme Analizi:</div>
+            <div id="mergeAnalysis">
+              <!-- Analiz sonuçları buraya eklenecek -->
+            </div>
+          </div>
+          <div class="merge-options" class="display-flex gap-8px">
+            <button id="confirmMergeBtn" class="btn" class="flex-1">✅ Birleştir</button>
+            <button id="replaceJsonBtn" class="btn secondary" class="flex-1">🔄 Değiştir</button>
+            <button id="cancelMergeBtn" class="btn ghost" class="flex-1">❌ İptal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON Detay Modal -->
+    <div id="jsonDetailModal" class="json-modal display-none">
+      <div class="json-modal-content">
+        <div class="json-modal-header">
+          <h3 class="margin-0 color-text" id="jsonDetailTitle">📊 JSON Detayları</h3>
+          <button id="closeDetailModal" class="btn ghost" class="padding-4px-8px font-size-16px">❌</button>
+        </div>
+        <div class="json-modal-body">
+          <div id="jsonDetailContent">
+            <!-- JSON detayları buraya eklenecek -->
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button id="loadDetailJsonBtn" class="btn" class="flex-1">📥 Yükle</button>
+            <button id="deleteDetailJsonBtn" class="btn ghost" style="flex: 1; color: var(--red);">🗑️ Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quiz scripts -->
     <script src="script.js"></script>
     <script src="admin.js"></script>
-  </body>
+    
+    <!-- Admin event listeners handled in admin.js -->
+</body>
 </html>

@@ -147,6 +147,7 @@
   /* File input hidden */
   #jsonFile{display:none}
 </style>
+<script src="../security-utils.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -542,7 +543,11 @@ function exportCSV(){
 }
 function exportPDF(){
   // Basit PDF: Tablo olarak yazdırma (window.print alternatifi)
-  let w = window.open("", "_blank");
+  let w = safeWindowOpen("", "_blank");
+  if (!w) {
+    console.warn('⚠️ Could not open new window for PDF export');
+    return;
+  }
   let html = `<html><head><title>Quiz Sonuçları</title>
     <style>body{font-family:sans-serif;font-size:13px} table{border-collapse:collapse;width:100%} th,td{border:1px solid #888;padding:5px 7px;text-align:left} th{background:#eee}</style>
     </head><body>
@@ -568,9 +573,11 @@ function exportPDF(){
     </tr>`;
   }
   html += "</tbody></table></body></html>";
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>{w.print();}, 400);
+  if (w.document) {
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>{if (w) { w.print(); }}, 400);
+  }
 }
 if(exportCsvBtn){ exportCsvBtn.addEventListener('click', exportCSV);}
 if(exportPdfBtn){ exportPdfBtn.addEventListener('click', exportPDF);}

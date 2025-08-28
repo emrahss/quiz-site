@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çoklu Oyuncu Quiz</title>
+    <style>
+        :root {
+            --bg: #f6f7fb;
+            --text: #0f172a;
+            --card: #ffffff;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --primary: #2563eb;
+            --primary-2: #1d4ed8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --opt-bg: #ffffff;
+            --opt-bg-hover: #f3f4f6;
+            --opt-text: #0f172a;
+            --badge-border: #cfd5df;
+        }
+        
+        body.dark {
+            --bg: #0b0f16;
+            --text: #e6e9ef;
+            --card: #0f1723;
+            --muted: #a7b0be;
+            --line: #223046;
+            --primary: #60a5fa;
+            --primary-2: #3b82f6;
+            --opt-bg: #122034;
+            --opt-bg-hover: #16263b;
+            --opt-text: #e6e9ef;
+            --badge-border: #3b4d68;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            appearance: none;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            box-shadow: 0 8px 18px rgba(107, 114, 128, 0.35);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+        }
+
+        .input, .textarea {
+            background: var(--card);
+            color: var(--text);
+            border: 1.5px solid var(--line);
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 500;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .choice {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 14px;
+            border-radius: 14px;
+            border: 2px solid transparent;
+            background: var(--opt-bg);
+            color: var(--opt-text);
+            cursor: pointer;
+            transition: 0.15s ease;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            margin: 8px 0;
+        }
+
+        .choice:hover {
+            background: var(--opt-bg-hover);
+        }
+
+        .choice.correct {
+            background: rgba(34, 197, 94, 0.18);
+            border-color: var(--green);
+        }
+
+        .choice.wrong {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: var(--red);
+        }
+
+        .badge {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid var(--badge-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #6b7280;
+            background: transparent;
+        }
+
+        .chat-container {
+            height: 300px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: var(--bg);
+        }
+
+        .chat-input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid var(--line);
+        }
+
+        .chat-input {
+            flex: 1;
+            margin: 0;
+            margin-right: 10px;
+        }
+
+        .message {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--line);
+        }
+
+        .message-user {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .room-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 10px;
+        }
+
+        .participants {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .participant {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .timer {
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 900;
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35);
+        }
+
+        .score {
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-weight: 900;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+        }
+
+        .progress {
+            height: 10px;
+            background: var(--line);
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 8px 0 16px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary), var(--primary-2));
+            transition: width 0.3s ease;
+        }
+
+        .question-text {
+            font-size: 26px;
+            line-height: 1.35;
+            font-weight: 900;
+            margin: 0 0 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .question-text {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Giriş Ekranı -->
+        <div id="loginScreen" class="card">
+            <h1>🎯 Çoklu Oyuncu Quiz</h1>
+            <div>
+                <input type="text" id="usernameInput" class="input" placeholder="Kullanıcı adınızı girin" maxlength="20">
+            </div>
+            
+            <!-- Advanced Room Options -->
+            <div id="roomOptionsSection" class="hidden" style="margin-top: 15px; padding: 15px; border: 1px solid var(--line); border-radius: 12px;">
+                <h3 style="margin-bottom: 15px;">🔧 Oda Ayarları</h3>
+                
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="roomNameInput" class="input" placeholder="Oda adı" maxlength="30">
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="number" id="maxParticipantsInput" class="input" placeholder="Max katılımcı (2-50)" min="2" max="50" value="8" style="flex: 1;">
+                    <select id="roomVisibility" class="input" style="flex: 1;">
+                        <option value="public">🌍 Herkese Açık</option>
+                        <option value="private">🔒 Şifreli</option>
+                    </select>
+                </div>
+                
+                <div id="passwordSection" class="hidden" style="margin-bottom: 10px;">
+                    <input type="password" id="roomPasswordInput" class="input" placeholder="Oda şifresi (4-20 karakter)" minlength="4" maxlength="20">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="createRoomBtn" class="btn">🎮 Oda Oluştur</button>
+                <button id="joinRoomBtn" class="btn secondary">🚪 Odaya Katıl</button>
+                <button id="advancedOptionsBtn" class="btn ghost">⚙️ Gelişmiş</button>
+            </div>
+            
+            <div id="joinRoomSection" class="hidden" style="margin-top: 20px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="roomCodeInput" class="input" placeholder="Oda kodu" maxlength="6" style="flex: 2;">
+                    <input type="password" id="joinPasswordInput" class="input" placeholder="Şifre (isteğe bağlı)" maxlength="20" style="flex: 1;">
+                </div>
+                <button id="joinRoomConfirmBtn" class="btn">🚪 Odaya Katıl</button>
+            </div>
+            
+            <!-- Available Rooms List -->
+            <div id="availableRoomsSection" style="margin-top: 20px;">
+                <h3>📋 Mevcut Odalar</h3>
+                <div id="roomsList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px;">
+                    <p style="text-align: center; color: var(--muted);">Yükleniyor...</p>
+                </div>
+                <button id="refreshRoomsBtn" class="btn ghost" style="margin-top: 10px;">🔄 Yenile</button>
+            </div>
+        </div>
+
+        <!-- Ana Quiz Ekranı -->
+        <div id="gameScreen" class="hidden">
+            <div class="grid">
+                <!-- Sol Panel: Quiz -->
+                <div>
+                    <div class="card">
+                        <div class="room-info">
+                            <div>
+                                <strong>Oda: <span id="roomCodeDisplay"></span></strong>
+                                <div class="participants" id="participantsList"></div>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span id="timerDisplay" class="timer">⏱️ 00:00</span>
+                                <span id="scoreDisplay" class="score">Skor: 0</span>
+                                <button id="deleteRoomBtn" class="btn danger" style="display: none;">🗑️ Odayı Sil</button>
+                                <button id="leaveRoomBtn" class="btn danger">Çık</button>
+                            </div>
+                        </div>
+
+                        <div class="progress">
+                            <div id="progressBar" class="progress-bar"></div>
+                        </div>
+
+                        <h2 id="questionText" class="question-text">Quiz başlamayı bekliyor...</h2>
+                        <div id="choicesContainer"></div>
+
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;" id="gameControls">
+                            <button id="startTimerBtn" class="btn" style="display: none;">⏱️ Zamanlayıcı Başlat</button>
+                            <button id="nextQuestionBtn" class="btn" style="display: none;">Sonraki Soru ➡️</button>
+                            <button id="restartQuizBtn" class="btn secondary" style="display: none;">🔄 Quiz Sıfırla</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sağ Panel: Chat -->
+                <div>
+                    <div class="card">
+                        <h3>💬 Sohbet</h3>
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chatMessages"></div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chatInput" class="input chat-input" placeholder="Mesajınızı yazın..." maxlength="200">
+                                <button id="sendChatBtn" class="btn">Gönder</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="security-utils.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        // Firebase configuration is now loaded from firebase-config.js
+
+        // Örnek sorular - gerçek uygulamada daha fazla soru olacak
+        const SAMPLE_QUESTIONS = [
+            {
+                q: "Türkiye'nin başkenti neresidir?",
+                options: ["İstanbul", "Ankara", "İzmir", "Bursa"],
+                answer: "Ankara",
+            },
+            {
+                q: "İstiklal Marşı'nın yazarı kimdir?",
+                options: ["Mehmet Akif Ersoy", "Namık Kemal", "Yahya Kemal", "Ziya Gökalp"],
+                answer: "Mehmet Akif Ersoy",
+            },
+            {
+                q: "TSK'da tümen mi kolordu mu daha büyüktür?",
+                options: ["Tümen", "Kolordu", "Eşittir", "Bağlıdır"],
+                answer: "Kolordu",
+            },
+            {
+                q: "Disiplinin temel unsuru nedir?",
+                options: ["Sadece yazılı emir", "Kanun/nizam ve amirlere itaat", "Kıyafet", "Nöbet"],
+                answer: "Kanun/nizam ve amirlere itaat",
+            },
+            {
+                q: "Garnizon komutanı hangi alandan sorumludur?",
+                options: ["Sivil idare", "Belediye", "Askerî düzen ve disiplin", "Üniversite"],
+                answer: "Askerî düzen ve disiplin",
+            },
+        ];
+
+        // Global değişkenler
+        let app, db;
+        let currentUser = null;
+        let currentRoom = null;
+        let currentRoomId = null;
+        let unsubscribeRoom = null;
+        let unsubscribeChat = null;
+        let isHost = false;
+        let timerInterval = null;
+        let userAnswers = {};
+
+        // DOM elementleri
+        const loginScreen = document.getElementById('loginScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const usernameInput = document.getElementById('usernameInput');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+        const joinRoomSection = document.getElementById('joinRoomSection');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const joinRoomConfirmBtn = document.getElementById('joinRoomConfirmBtn');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const participantsList = document.getElementById('participantsList');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const questionText = document.getElementById('questionText');
+        const choicesContainer = document.getElementById('choicesContainer');
+        const progressBar = document.getElementById('progressBar');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        const startTimerBtn = document.getElementById('startTimerBtn');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const restartQuizBtn = document.getElementById('restartQuizBtn');
+        const deleteRoomBtn = document.getElementById('deleteRoomBtn');
+
+        // Firebase başlatma
+        function initFirebase() {
+            if (!FIREBASE_CONFIG.apiKey) {
+                alert('Firebase yapılandırması eksik! FIREBASE_CONFIG nesnesini doldurun.');
+                return false;
+            }
+            
+            try {
+                app = firebase.initializeApp(FIREBASE_CONFIG);
+                db = firebase.firestore();
+                return true;
+            } catch (error) {
+                console.error('Firebase başlatma hatası:', error);
+                alert('Firebase bağlantısı kurulamadı: ' + error.message);
+                return false;
+            }
+        }
+
+        // Oda kodu oluşturma
+        function generateRoomCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // Zaman formatlama
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Oda oluşturma
+        async function createRoom() {
+            if (!validateUsername()) return;
+            
+            const roomCode = generateRoomCode();
+            currentUser = usernameInput.value.trim();
+            isHost = true;
+            
+            // Get advanced options
+            const roomName = document.getElementById('roomNameInput')?.value?.trim() || `${currentUser}'in Odası`;
+            const maxParticipants = parseInt(document.getElementById('maxParticipantsInput')?.value) || 8;
+            const visibility = document.getElementById('roomVisibility')?.value || 'public';
+            const roomPassword = document.getElementById('roomPasswordInput')?.value?.trim();
+
+            // Validate inputs
+            if (visibility === 'private' && roomPassword && (roomPassword.length < 4 || roomPassword.length > 20)) {
+                alert('Şifre 4-20 karakter arasında olmalıdır!');
+                return;
+            }
+            
+            if (maxParticipants < 2 || maxParticipants > 50) {
+                alert('Katılımcı sayısı 2-50 arasında olmalıdır!');
+                return;
+            }
+
+            try {
+                const roomData = {
+                    name: roomName,
+                    code: roomCode,
+                    ownerId: 'demo-user', // For demo mode
+                    visibility: visibility,
+                    maxParticipants: maxParticipants,
+                    currentQuestion: 0,
+                    timer: 0,
+                    timerRunning: false,
+                    participants: [currentUser],
+                    host: currentUser,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    questions: SAMPLE_QUESTIONS,
+                    status: 'waiting'
+                };
+                
+                // Add password if room is private
+                if (visibility === 'private' && roomPassword) {
+                    roomData.password = roomPassword;
+                }
+
+                await db.collection('rooms').doc(roomCode).set(roomData);
+
+                currentRoomId = roomCode;
+                showGameScreen();
+                listenToRoom();
+                
+                const roomTypeText = roomPassword ? '🔒 Şifreli' : '🌍 Açık';
+                addChatMessage('Sistem', `${currentUser} ${roomTypeText} odayı oluşturdu`);
+            } catch (error) {
+                console.error('Oda oluşturma hatası:', error);
+                alert('Oda oluşturulamadı: ' + error.message);
+            }
+        }
+
+        // Odaya katılma
+        async function joinRoom() {
+            if (!validateUsername()) return;
+            
+            const roomCode = roomCodeInput.value.trim().toUpperCase();
+            const joinPassword = document.getElementById('joinPasswordInput')?.value?.trim();
+            
+            if (roomCode.length !== 6) {
+                alert('Oda kodu 6 karakter olmalıdır');
+                return;
+            }
+
+            currentUser = usernameInput.value.trim();
+
+            try {
+                const roomDoc = await db.collection('rooms').doc(roomCode).get();
+                
+                if (!roomDoc.exists) {
+                    alert('Oda bulunamadı');
+                    return;
+                }
+
+                const roomData = roomDoc.data();
+                
+                // Check password for private rooms
+                if (roomData.password && roomData.password !== joinPassword) {
+                    alert('❌ Yanlış şifre! Bu oda şifreli.');
+                    return;
+                }
+                
+                if (roomData.participants.includes(currentUser)) {
+                    alert('Bu kullanıcı adı zaten odada mevcut');
+                    return;
+                }
+
+                // Check room capacity
+                const maxParticipants = roomData.maxParticipants || 8;
+                if (roomData.participants.length >= maxParticipants) {
+                    alert(`Oda dolu! Maksimum ${maxParticipants} oyuncu desteklenir.`);
+                    return;
+                }
+
+                await db.collection('rooms').doc(roomCode).update({
+                    participants: firebase.firestore.FieldValue.arrayUnion(currentUser)
+                });
+
+                currentRoomId = roomCode;
+                isHost = false;
+                showGameScreen();
+                listenToRoom();
+                
+                const roomTypeText = roomData.password ? '🔒 Şifreli' : '🌍 Açık';
+                addChatMessage('Sistem', `${currentUser} ${roomTypeText} odaya katıldı`);
+            } catch (error) {
+                console.error('Odaya katılma hatası:', error);
+                alert('Odaya katılamadı: ' + error.message);
+            }
+        }
+
+        // Kullanıcı adı doğrulama
+        function validateUsername() {
+            const username = usernameInput.value.trim();
+            if (!username || username.length < 2) {
+                alert('Geçerli bir kullanıcı adı girin (en az 2 karakter)');
+                return false;
+            }
+            if (username.length > 20) {
+                alert('Kullanıcı adı en fazla 20 karakter olmalıdır');
+                return false;
+            }
+            return true;
+        }
+
+        // Mevcut odaları yükleme
+        async function loadAvailableRooms() {
+            const roomsList = document.getElementById('roomsList');
+            if (!roomsList) return;
+
+            try {
+                roomsList.innerHTML = '<p style="text-align: center; color: var(--muted);">Yükleniyor...</p>';
+                
+                const roomsSnapshot = await db.collection('rooms')
+                    .where('status', '==', 'waiting')
+                    .orderBy('createdAt', 'desc')
+                    .limit(10)
+                    .get();
+
+                if (roomsSnapshot.empty) {
+                    roomsList.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--muted);">
+                            <p>📭 Henüz aktif oda yok</p>
+                            <p style="font-size: 0.9em;">İlk odayı siz oluşturun!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                roomsSnapshot.forEach((doc) => {
+                    const room = doc.data();
+                    const participantCount = room.participants ? room.participants.length : 0;
+                    const maxParticipants = room.maxParticipants || 8;
+                    const isPrivate = room.password ? true : false;
+                    const visibilityIcon = isPrivate ? '🔒' : '🌍';
+                    const visibilityText = isPrivate ? 'Şifreli' : 'Açık';
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--line); cursor: pointer; hover: background-color: var(--hover);" onclick="quickJoinRoom('${doc.id}', ${isPrivate})">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <strong>${room.name || 'İsimsiz Oda'}</strong>
+                                    <span style="font-size: 0.8em; color: var(--muted);">${visibilityIcon} ${visibilityText}</span>
+                                </div>
+                                <div style="font-size: 0.8em; color: var(--muted);">Host: ${room.host}</div>
+                                <div style="font-size: 0.7em; color: var(--muted);">Kod: ${room.code || doc.id}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7em;">
+                                    👥 ${participantCount}/${maxParticipants}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                roomsList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Odalar yüklenirken hata:', error);
+                roomsList.innerHTML = `
+                    <div style="background: #fee; border: 1px solid #fcc; border-radius: 8px; padding: 12px; text-align: center;">
+                        <p style="color: #c66; margin: 0;">⚠️ Odalar yüklenemedi</p>
+                        <p style="font-size: 0.8em; color: var(--muted); margin: 5px 0 0 0;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Hızlı oda katılma
+        function quickJoinRoom(roomCode, isPrivate) {
+            roomCodeInput.value = roomCode;
+            if (isPrivate) {
+                const password = prompt('Bu oda şifreli. Şifreyi girin:');
+                if (password) {
+                    document.getElementById('joinPasswordInput').value = password;
+                    joinRoomSection.classList.remove('hidden');
+                } else {
+                    return;
+                }
+            } else {
+                joinRoomSection.classList.remove('hidden');
+            }
+        }
+
+        // Oyun ekranını göster
+        function showGameScreen() {
+            loginScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            roomCodeDisplay.textContent = currentRoomId;
+            
+            // Host kontrollerini göster
+            if (isHost) {
+                startTimerBtn.style.display = 'inline-block';
+                nextQuestionBtn.style.display = 'inline-block';
+                restartQuizBtn.style.display = 'inline-block';
+                deleteRoomBtn.style.display = 'inline-block';
+            }
+        }
+
+        // Oda dinleme
+        function listenToRoom() {
+            unsubscribeRoom = db.collection('rooms').doc(currentRoomId)
+                .onSnapshot((doc) => {
+                    if (!doc.exists) {
+                        alert('Oda kapatıldı');
+                        leaveRoom();
+                        return;
+                    }
+
+                    currentRoom = doc.data();
+                    updateGameUI();
+                });
+
+            // Chat dinleme
+            unsubscribeChat = db.collection('rooms').doc(currentRoomId)
+                .collection('chat')
+                .orderBy('createdAt', 'asc')
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const message = change.doc.data();
+                            displayChatMessage(message.user, message.text);
+                        }
+                    });
+                });
+        }
+
+        // Oyun UI güncellemesi
+        function updateGameUI() {
+            if (!currentRoom) return;
+
+            // Katılımcıları güncelle
+            participantsList.innerHTML = '';
+            currentRoom.participants.forEach(participant => {
+                const span = document.createElement('span');
+                span.className = 'participant';
+                span.textContent = participant;
+                if (participant === currentRoom.host) {
+                    span.textContent += ' 👑';
+                }
+                participantsList.appendChild(span);
+            });
+
+            // Timer güncelle
+            timerDisplay.textContent = `⏱️ ${formatTime(currentRoom.timer || 0)}`;
+
+            // Progress bar güncelle
+            const totalQuestions = currentRoom.questions?.length || 0;
+            const currentQ = currentRoom.currentQuestion || 0;
+            const progress = totalQuestions > 0 ? (currentQ / totalQuestions) * 100 : 0;
+            progressBar.style.width = progress + '%';
+
+            // Soruyu güncelle
+            if (currentRoom.questions && currentRoom.questions[currentRoom.currentQuestion]) {
+                displayQuestion(currentRoom.questions[currentRoom.currentQuestion], currentRoom.currentQuestion);
+            } else {
+                questionText.textContent = 'Quiz tamamlandı!';
+                choicesContainer.innerHTML = '';
+            }
+
+            // Skor güncelle
+            const userScore = calculateUserScore();
+            scoreDisplay.textContent = `Skor: ${userScore}`;
+        }
+
+        // Soru görüntüleme
+        function displayQuestion(question, questionIndex) {
+            questionText.textContent = `${questionIndex + 1}. ${question.q}`;
+            choicesContainer.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const choiceDiv = document.createElement('div');
+                choiceDiv.className = 'choice';
+                
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+                badge.textContent = String.fromCharCode(65 + index); // A, B, C, D
+                
+                const text = document.createElement('span');
+                text.textContent = option;
+
+                choiceDiv.appendChild(badge);
+                choiceDiv.appendChild(text);
+
+                // Cevap kontrolü
+                const userAnswer = userAnswers[questionIndex];
+                if (userAnswer) {
+                    if (option === userAnswer) {
+                        choiceDiv.classList.add(option === question.answer ? 'correct' : 'wrong');
+                    } else if (option === question.answer) {
+                        choiceDiv.classList.add('correct');
+                    }
+                } else {
+                    choiceDiv.onclick = () => answerQuestion(questionIndex, option);
+                }
+
+                choicesContainer.appendChild(choiceDiv);
+            });
+        }
+
+        // Cevap verme
+        async function answerQuestion(questionIndex, selectedAnswer) {
+            if (userAnswers[questionIndex]) return; // Zaten cevaplandı
+
+            userAnswers[questionIndex] = selectedAnswer;
+
+            try {
+                // Cevabı timestamp ile kaydet
+                await db.collection('rooms').doc(currentRoomId)
+                    .collection('answers').doc(currentUser).set({
+                        [questionIndex]: {
+                            answer: selectedAnswer,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            user: currentUser
+                        }
+                    }, { merge: true });
+
+                // Realtime cevap paylaşımı için
+                await addChatMessage('Sistem', `${currentUser} ${questionIndex + 1}. soruyu cevapladı`);
+
+                // UI'ı güncelle
+                updateGameUI();
+                
+                // Show feedback immediately
+                showAnswerFeedback(questionIndex, selectedAnswer);
+                
+            } catch (error) {
+                console.error('Cevap kaydetme hatası:', error);
+            }
+        }
+
+        // Show answer feedback
+        function showAnswerFeedback(questionIndex, selectedAnswer) {
+            if (!currentRoom?.questions) return;
+            
+            const question = currentRoom.questions[questionIndex];
+            const isCorrect = selectedAnswer === question.answer;
+            
+            // Update choices to show correct/wrong
+            const choices = choicesContainer.querySelectorAll('.choice');
+            choices.forEach((choice, index) => {
+                const optionText = question.options[index];
+                choice.style.pointerEvents = 'none'; // Disable further clicks
+                
+                if (optionText === selectedAnswer) {
+                    choice.classList.add(isCorrect ? 'correct' : 'wrong');
+                } else if (optionText === question.answer) {
+                    choice.classList.add('correct');
+                }
+            });
+            
+            // Show success message
+            const feedback = isCorrect ? '✅ Doğru!' : '❌ Yanlış!';
+            setTimeout(() => {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: ${isCorrect ? 'var(--green)' : 'var(--red)'};
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 12px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    font-size: 18px;
+                `;
+                feedbackDiv.textContent = feedback;
+                document.body.appendChild(feedbackDiv);
+                
+                setTimeout(() => {
+                    document.body.removeChild(feedbackDiv);
+                }, 1500);
+            }, 200);
+        }
+
+        // Kullanıcı skoru hesaplama
+        function calculateUserScore() {
+            if (!currentRoom?.questions) return 0;
+            
+            let score = 0;
+            currentRoom.questions.forEach((question, index) => {
+                if (userAnswers[index] === question.answer) {
+                    score++;
+                }
+            });
+            return score;
+        }
+
+        // Timer başlatma (sadece host)
+        async function startTimer() {
+            if (!isHost) return;
+
+            try {
+                await db.collection('rooms').doc(currentRoomId).update({
+                    timerRunning: !currentRoom.timerRunning
+                });
+            } catch (error) {
+                console.error('Timer başlatma hatası:', error);
+            }
+        }
+
+        // Sonraki soru (sadece host)
+        async function nextQuestion() {
+            if (!isHost) return;
+
+            const nextQ = (currentRoom.currentQuestion || 0) + 1;
+            
+            try {
+                await db.collection('rooms').doc(currentRoomId).update({
+                    currentQuestion: nextQ,
+                    timer: 0,
+                    timerRunning: false
+                });
+                
+                addChatMessage('Sistem', 'Sonraki soru!');
+            } catch (error) {
+                console.error('Sonraki soru hatası:', error);
+            }
+        }
+
+        // Quiz sıfırlama (sadece host)
+        async function restartQuiz() {
+            if (!isHost) return;
+
+            try {
+                await db.collection('rooms').doc(currentRoomId).update({
+                    currentQuestion: 0,
+                    timer: 0,
+                    timerRunning: false
+                });
+
+                // Tüm cevapları temizle
+                const answersCollection = db.collection('rooms').doc(currentRoomId).collection('answers');
+                const snapshot = await answersCollection.get();
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+
+                userAnswers = {};
+                addChatMessage('Sistem', 'Quiz sıfırlandı!');
+            } catch (error) {
+                console.error('Quiz sıfırlama hatası:', error);
+            }
+        }
+
+        // Chat mesajı gönderme
+        async function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message || message.length > 200) {
+                if (message.length > 200) {
+                    alert('Mesaj çok uzun! Maksimum 200 karakter.');
+                }
+                return;
+            }
+
+            // Prevent spam (max 1 message per 2 seconds)
+            const now = Date.now();
+            if (window.lastMessageTime && now - window.lastMessageTime < 2000) {
+                alert('Çok hızlı mesaj gönderiyorsunuz! 2 saniye bekleyin.');
+                return;
+            }
+            window.lastMessageTime = now;
+
+            try {
+                await addChatMessage(currentUser, message);
+                chatInput.value = '';
+                
+                // Focus back to input for continuous chatting
+                setTimeout(() => chatInput.focus(), 100);
+                
+            } catch (error) {
+                console.error('Mesaj gönderme hatası:', error);
+                alert('Mesaj gönderilemedi!');
+            }
+        }
+
+        // Chat mesajı ekleme
+        async function addChatMessage(user, text) {
+            try {
+                await db.collection('rooms').doc(currentRoomId)
+                    .collection('chat').add({
+                        user: user,
+                        text: text,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+            } catch (error) {
+                console.error('Chat mesajı ekleme hatası:', error);
+            }
+        }
+
+        // Chat mesajı gösterme
+        function displayChatMessage(user, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            // Add timestamp
+            const now = new Date();
+            const timestamp = now.getHours().toString().padStart(2, '0') + ':' + 
+                            now.getMinutes().toString().padStart(2, '0');
+            
+            // Different styles for system vs user messages
+            if (user === 'Sistem') {
+                messageDiv.style.cssText = `
+                    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+                    color: var(--muted);
+                    font-style: italic;
+                    text-align: center;
+                    border-radius: 20px;
+                    margin: 5px 0;
+                    padding: 6px 12px;
+                    font-size: 0.9em;
+                `;
+                messageDiv.textContent = `🔔 ${text}`;
+            } else {
+                const userSpan = document.createElement('span');
+                userSpan.className = 'message-user';
+                
+                // Highlight current user's messages
+                if (user === currentUser) {
+                    messageDiv.style.cssText = `
+                        background: linear-gradient(135deg, var(--primary), var(--primary-2));
+                        color: white;
+                        margin-left: 20px;
+                        border-radius: 18px 4px 18px 18px;
+                    `;
+                    userSpan.textContent = 'Sen: ';
+                } else {
+                    messageDiv.style.cssText = `
+                        background: var(--card);
+                        border: 1px solid var(--line);
+                        margin-right: 20px;
+                        border-radius: 4px 18px 18px 18px;
+                    `;
+                    userSpan.textContent = user + ': ';
+                }
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = text;
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.style.cssText = `
+                    font-size: 0.7em;
+                    opacity: 0.7;
+                    margin-left: 8px;
+                `;
+                timeSpan.textContent = timestamp;
+
+                messageDiv.appendChild(userSpan);
+                messageDiv.appendChild(textSpan);
+                messageDiv.appendChild(timeSpan);
+            }
+
+            chatMessages.appendChild(messageDiv);
+            
+            // Auto-scroll to bottom with smooth animation
+            chatMessages.scrollTo({
+                top: chatMessages.scrollHeight,
+                behavior: 'smooth'
+            });
+            
+            // Limit chat history (keep last 50 messages)
+            const messages = chatMessages.querySelectorAll('.message');
+            if (messages.length > 50) {
+                messages[0].remove();
+            }
+        }
+
+        // Oda silme (sadece host)
+        async function deleteRoom() {
+            if (!isHost) {
+                alert('Sadece oda sahibi odayı silebilir!');
+                return;
+            }
+
+            if (!confirm('Odayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+                return;
+            }
+
+            try {
+                if (currentRoomId) {
+                    // Önce tüm alt koleksiyonları sil
+                    const chatSnapshot = await db.collection('rooms').doc(currentRoomId).collection('chat').get();
+                    const answersSnapshot = await db.collection('rooms').doc(currentRoomId).collection('answers').get();
+                    
+                    const batch = db.batch();
+                    chatSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    answersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    
+                    // Odayı sil
+                    batch.delete(db.collection('rooms').doc(currentRoomId));
+                    
+                    await batch.commit();
+                    
+                    addChatMessage('Sistem', 'Oda silinmiştir.');
+                    
+                    // UI sıfırlama
+                    setTimeout(() => {
+                        resetGameState();
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Oda silme hatası:', error);
+                alert('Oda silinemedi: ' + error.message);
+            }
+        }
+
+        // Odadan çıkma
+        async function leaveRoom() {
+            try {
+                if (currentRoomId && currentUser) {
+                    await db.collection('rooms').doc(currentRoomId).update({
+                        participants: firebase.firestore.FieldValue.arrayRemove(currentUser)
+                    });
+
+                    addChatMessage('Sistem', `${currentUser} odadan çıktı`);
+                }
+
+                resetGameState();
+
+            } catch (error) {
+                console.error('Odadan çıkma hatası:', error);
+            }
+        }
+
+        // Game state sıfırlama
+        function resetGameState() {
+            // Listeners'ı temizle
+            if (unsubscribeRoom) unsubscribeRoom();
+            if (unsubscribeChat) unsubscribeChat();
+            if (timerInterval) clearInterval(timerInterval);
+
+            // State sıfırlama
+            currentUser = null;
+            currentRoom = null;
+            currentRoomId = null;
+            isHost = false;
+            userAnswers = {};
+
+            // UI sıfırlama
+            gameScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            joinRoomSection.classList.add('hidden');
+            usernameInput.value = '';
+            roomCodeInput.value = '';
+            chatMessages.innerHTML = '';
+            
+            // Host butonlarını gizle
+            startTimerBtn.style.display = 'none';
+            nextQuestionBtn.style.display = 'none';
+            restartQuizBtn.style.display = 'none';
+            deleteRoomBtn.style.display = 'none';
+        }
+
+        // Event listeners
+        createRoomBtn.addEventListener('click', createRoom);
+        joinRoomBtn.addEventListener('click', () => {
+            joinRoomSection.classList.toggle('hidden');
+        });
+        joinRoomConfirmBtn.addEventListener('click', joinRoom);
+        
+        // Advanced options toggle
+        const advancedOptionsBtn = document.getElementById('advancedOptionsBtn');
+        const roomOptionsSection = document.getElementById('roomOptionsSection');
+        const roomVisibility = document.getElementById('roomVisibility');
+        const passwordSection = document.getElementById('passwordSection');
+        const refreshRoomsBtn = document.getElementById('refreshRoomsBtn');
+        
+        if (advancedOptionsBtn) {
+            advancedOptionsBtn.addEventListener('click', () => {
+                roomOptionsSection.classList.toggle('hidden');
+                advancedOptionsBtn.textContent = roomOptionsSection.classList.contains('hidden') ? '⚙️ Gelişmiş' : '❌ Kapat';
+            });
+        }
+        
+        if (roomVisibility) {
+            roomVisibility.addEventListener('change', () => {
+                if (roomVisibility.value === 'private') {
+                    passwordSection.classList.remove('hidden');
+                } else {
+                    passwordSection.classList.add('hidden');
+                }
+            });
+        }
+        
+        if (refreshRoomsBtn) {
+            refreshRoomsBtn.addEventListener('click', loadAvailableRooms);
+        }
+        leaveRoomBtn.addEventListener('click', leaveRoom);
+        deleteRoomBtn.addEventListener('click', deleteRoom);
+        startTimerBtn.addEventListener('click', startTimer);
+        nextQuestionBtn.addEventListener('click', nextQuestion);
+        restartQuizBtn.addEventListener('click', restartQuiz);
+        sendChatBtn.addEventListener('click', sendChatMessage);
+
+        // Enter tuşu ile mesaj gönderme
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        // Enter tuşu ile oda kodunu onaylama
+        roomCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // Enter tuşu ile kullanıcı adını onaylama
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                createRoom();
+            }
+        });
+
+        // Sayfa yüklendiğinde Firebase'i başlat
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!initFirebase()) {
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                        <h1>⚠️ Firebase Yapılandırması Gerekli</h1>
+                        <p>FIREBASE_CONFIG nesnesini Firebase proje bilgilerinizle doldurun.</p>
+                        <p>Firestore güvenlik kuralları:</p>
+                        <pre style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: left; max-width: 600px; margin: 20px auto;">
+// Demo için açık kurallar - Üretimde güvenlik ekleyin
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Odalar için okuma/yazma izni
+    match /rooms/{roomId} {
+      allow read, write: if true; // Üretimde: request.auth != null
+      
+      // Chat mesajları
+      match /chat/{messageId} {
+        allow read, write: if true; // Üretimde: request.auth != null
+      }
+      
+      // Kullanıcı cevapları
+      match /answers/{userId} {
+        allow read, write: if true; // Üretimde: request.auth.uid == userId
+      }
+    }
+  }
+}
+                        </pre>
+                    </div>
+                `;
+            } else {
+                // Firebase başlatıldı, mevcut odaları yükle
+                loadAvailableRooms();
+                
+                // Her 30 saniyede bir odaları yenile
+                setInterval(loadAvailableRooms, 30000);
+            }
+        });
+
+        // Timer senkronizasyonu
+        setInterval(() => {
+            if (currentRoom?.timerRunning && isHost) {
+                db.collection('rooms').doc(currentRoomId).update({
+                    timer: firebase.firestore.FieldValue.increment(1)
+                }).catch(error => console.error('Timer güncelleme hatası:', error));
+            }
+        }, 1000);
+
+    </script>
+</body>
+</html>
